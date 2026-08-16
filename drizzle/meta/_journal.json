@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1786861940702,
+      "tag": "0000_careful_xavin",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786868753699,
+      "tag": "0001_drop_invite_code",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786868759140,
+      "tag": "0002_add_user_approval",
+      "breakpoints": true
+    }
+  ]
+}
