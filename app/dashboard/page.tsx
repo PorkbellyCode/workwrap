@@ -1,11 +1,10 @@
 import { redirect } from "next/navigation";
 import { and, asc, eq, gte, lt } from "drizzle-orm";
-import { auth, signOut } from "@/auth";
+import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { memos, summaries, users } from "@/lib/db/schema";
 import { dayRangeUtc, todayUtc } from "@/lib/date";
-import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
+import TopNav from "@/components/top-nav";
 import MemoTimeline from "./memo-timeline";
 import SummaryPanel from "./summary-panel";
 
@@ -74,25 +73,8 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 px-6 py-10">
-      <header className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">
-          {session.user.email}
-        </span>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/login" });
-            }}
-          >
-            <Button type="submit" variant="ghost" size="sm">
-              로그아웃
-            </Button>
-          </form>
-        </div>
-      </header>
+    <div className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 px-6 py-6">
+      <TopNav current="dashboard" />
 
       <MemoTimeline date={date} initialMemos={initialMemos} />
       <SummaryPanel date={date} initialSummaries={initialSummaries} />
