@@ -1,7 +1,14 @@
 // 요약 생성에 쓰이는 상수와 프롬프트 조립. API 명세 4.1 기준.
 
 // 하루 요약 생성 횟수 상한(명세 5.1의 summary.limitCount).
-export const SUMMARY_DAILY_LIMIT = 3;
+// 기본값은 무제한. 요약 1회 비용이 $0.001 미만이라 상시 제한을 둘 이유가 없다고 판단했다.
+// 폭주(버튼 연타, 클라이언트 루프 버그)를 막아야 할 상황이 오면
+// SUMMARY_DAILY_LIMIT 환경변수에 숫자를 넣고 재배포하면 즉시 상한이 걸린다.
+// 빌드 타임에 값이 고정되지 않도록 상수가 아닌 함수로 노출한다.
+export function summaryDailyLimit(): number | null {
+  const limit = Number(process.env.SUMMARY_DAILY_LIMIT);
+  return limit > 0 ? limit : null;
+}
 
 export const SUMMARY_MODEL = "gpt-5.6-luna";
 

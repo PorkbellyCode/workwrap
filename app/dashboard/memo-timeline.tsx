@@ -5,6 +5,7 @@ import { Check, Loader2, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import RecordButton from "./record-button";
 
 type Memo = {
   id: string;
@@ -25,6 +26,7 @@ export default function MemoTimeline({
   const [pending, setPending] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
+  const [recordError, setRecordError] = useState("");
 
   async function addMemo(e: React.FormEvent) {
     e.preventDefault();
@@ -140,11 +142,22 @@ export default function MemoTimeline({
         </CardContent>
       </Card>
 
+      {recordError && (
+        <p className="text-sm text-destructive">{recordError}</p>
+      )}
+
       <form onSubmit={addMemo} className="flex gap-2">
+        <RecordButton
+          onTranscript={(transcript) => {
+            setRecordError("");
+            setText(transcript);
+          }}
+          onError={setRecordError}
+        />
         <Input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="메모 입력 (음성 녹음은 아직 준비 중)"
+          placeholder="메모를 입력하거나 마이크로 말해보세요"
           className="flex-1"
         />
         <Button type="submit" disabled={pending}>

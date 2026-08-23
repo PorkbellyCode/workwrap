@@ -5,9 +5,9 @@ import { db } from "@/lib/db";
 import { memos, summaries } from "@/lib/db/schema";
 import { dayRangeUtc, todayUtc } from "@/lib/date";
 import {
-  SUMMARY_DAILY_LIMIT,
   SUMMARY_MODEL,
   buildSummaryMessages,
+  summaryDailyLimit,
 } from "@/lib/summary";
 
 // 요약 생성은 모델 응답을 끝까지 기다려야 해서 기본 타임아웃으로는 부족할 수 있다.
@@ -42,24 +42,28 @@ export async function POST(request: Request) {
   // 스트리밍을 시작하기 전에 실패할 수 있는 검사는 모두 여기서 끝낸다.
   // (스트림이 열린 뒤에는 HTTP 상태 코드를 바꿀 수 없다)
 
-  const { start: todayStart, end: todayEnd } = dayRangeUtc(todayUtc());
-  const todaysSummaries = await db
-    .select({ id: summaries.id })
-    .from(summaries)
-    .where(
-      and(
-        eq(summaries.userId, userId),
-        gte(summaries.createdAt, todayStart),
-        lt(summaries.createdAt, todayEnd)
-      )
-    );
+  // 상한이 설정된 경우에만 집계한다. 기본값(무제한)에서는 쿼리 자체를 돌리지 않는다.
+  const dailyLimit = summaryDailyLimit();
+  if (dailyLimit !== null) {
+    const { start: todayStart, end: todayEnd } = dayRangeUtc(todayUtc());
+    const todaysSummaries = await db
+      .select({ id: summaries.id })
+      .from(summaries)
+      .where(
+        and(
+          eq(summaries.userId, userId),
+          gte(summaries.createdAt, todayStart),
+          lt(summaries.createdAt, todayEnd)
+        )
+      );
 
-  if (todaysSummaries.length >= SUMMARY_DAILY_LIMIT) {
-    return errorResponse(
-      "QUOTA_EXCEEDED",
-      `하루 요약 생성은 ${SUMMARY_DAILY_LIMIT}회까지 가능합니다.`,
-      429
-    );
+    if (todaysSummaries.length >= dailyLimit) {
+      return errorResponse(
+        "QUOTA_EXCEEDED",
+        `하루 요약 생성은 ${dailyLimit}회까지 가능합니다.`,
+        429
+      );
+    }
   }
 
   const rows = await db
