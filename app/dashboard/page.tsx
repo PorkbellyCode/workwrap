@@ -2,11 +2,12 @@ import { redirect } from "next/navigation";
 import { and, asc, eq, gte, lt } from "drizzle-orm";
 import { auth, signOut } from "@/auth";
 import { db } from "@/lib/db";
-import { memos, users } from "@/lib/db/schema";
+import { memos, summaries, users } from "@/lib/db/schema";
 import { dayRangeUtc, todayUtc } from "@/lib/date";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import MemoTimeline from "./memo-timeline";
+import SummaryPanel from "./summary-panel";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -49,6 +50,29 @@ export default async function DashboardPage() {
     createdAt: memo.createdAt.toISOString(),
   }));
 
+  const summaryRows = await db
+    .select({
+      id: summaries.id,
+      version: summaries.version,
+      content: summaries.content,
+      createdAt: summaries.createdAt,
+    })
+    .from(summaries)
+    .where(
+      and(
+        eq(summaries.userId, session.user.id),
+        eq(summaries.dateFrom, date),
+        eq(summaries.dateTo, date),
+        eq(summaries.format, "default")
+      )
+    )
+    .orderBy(asc(summaries.version));
+
+  const initialSummaries = summaryRows.map((summary) => ({
+    ...summary,
+    createdAt: summary.createdAt.toISOString(),
+  }));
+
   return (
     <div className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 px-6 py-10">
       <header className="flex items-center justify-between">
@@ -71,6 +95,7 @@ export default async function DashboardPage() {
       </header>
 
       <MemoTimeline date={date} initialMemos={initialMemos} />
+      <SummaryPanel date={date} initialSummaries={initialSummaries} />
     </div>
   );
 }

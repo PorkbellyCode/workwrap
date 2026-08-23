@@ -97,6 +97,9 @@ export const summaries = pgTable("summary", {
   dateFrom: date("date_from", { mode: "string" }).notNull(),
   dateTo: date("date_to", { mode: "string" }).notNull(),
   format: text("format").notNull().default("default"),
+  // 같은 (user, 기간, format)에 대해 재요약할 때마다 1부터 증가.
+  // 덮어쓰지 않고 이력을 남겨 이전 요약본과 비교할 수 있게 한다.
+  version: integer("version").notNull().default(1),
   content: text("content").notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
