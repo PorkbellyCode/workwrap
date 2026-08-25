@@ -107,7 +107,7 @@ export default function SummaryPanel({
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1.5">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              오늘 요약
+              {date} 요약
             </CardTitle>
             {versions.length > 0 && (
               <CardDescription>
@@ -150,7 +150,7 @@ export default function SummaryPanel({
           !streaming &&
           !error && (
             <p className="text-sm text-muted-foreground">
-              오늘 쌓인 메모를 모아 요약을 만들어드려요.
+              이 날 쌓인 메모를 모아 요약을 만들어드려요.
             </p>
           )
         )}

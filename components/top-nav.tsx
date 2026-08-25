@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 export default async function TopNav({
   current,
 }: {
-  current: "dashboard" | "admin";
+  current: "dashboard" | "summary" | "admin";
 }) {
   const session = await auth();
   const email = session?.user?.email ?? "";
@@ -16,6 +16,7 @@ export default async function TopNav({
 
   const links = [
     { href: "/dashboard", label: "홈", key: "dashboard" as const },
+    { href: "/summary", label: "요약", key: "summary" as const },
     ...(isAdmin
       ? [{ href: "/admin", label: "관리", key: "admin" as const }]
       : []),

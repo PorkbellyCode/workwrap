@@ -22,10 +22,12 @@ function pickMimeType() {
 export default function RecordButton({
   onTranscript,
   onError,
+  className,
 }: {
   // 전사가 진행되는 동안 누적 텍스트로 반복 호출된다.
   onTranscript: (text: string) => void;
   onError: (message: string) => void;
+  className?: string;
 }) {
   const [status, setStatus] = useState<Status>("idle");
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -120,7 +122,13 @@ export default function RecordButton({
 
   if (status === "transcribing") {
     return (
-      <Button type="button" variant="outline" size="icon" disabled>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className={className}
+        disabled
+      >
         <Loader2 className="animate-spin" />
       </Button>
     );
@@ -133,6 +141,7 @@ export default function RecordButton({
       type="button"
       variant={recording ? "secondary" : "outline"}
       size="icon"
+      className={className}
       aria-label={recording ? "녹음 멈추기" : "음성으로 메모하기"}
       onClick={recording ? stopRecording : startRecording}
     >

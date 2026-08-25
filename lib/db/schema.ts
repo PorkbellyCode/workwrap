@@ -1,6 +1,7 @@
 import {
   boolean,
   date,
+  index,
   integer,
   pgTable,
   primaryKey,
@@ -75,17 +76,42 @@ export const verificationTokens = pgTable(
 
 // --- Workwrap 도메인 테이블 (프로젝트 컨텍스트 문서 6번, API 명세 6번 기준) ---
 
-export const memos = pgTable("memo", {
+// 사용자가 직접 만드는 업무 분류(예: SRM / PSRM / 일상). 사용자당 최대 3개이며
+// 최소 1개는 항상 유지된다(마지막 하나는 삭제 불가). 승인 시 'Work'가 자동 생성되므로
+// 카테고리가 0개인 상태는 발생하지 않는다.
+export const categories = pgTable("category", {
   id: text("id")
     .primaryKey()
-    .$defaultFn(() => createId("memo")),
+    .$defaultFn(() => createId("cat")),
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  text: text("text").notNull(),
-  audioUrl: text("audio_url"),
+  name: text("name").notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
+
+export const memos = pgTable(
+  "memo",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId("memo")),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    categoryId: text("category_id")
+      .notNull()
+      .references(() => categories.id, { onDelete: "cascade" }),
+    text: text("text").notNull(),
+    // 사용자가 "이 메모가 속한 날"로 지정한 날짜. 클라이언트가 자기 로컬 날짜를 보낸다.
+    // created_at(시스템이 기록한 실제 시각)과 역할이 다르다 — 타임라인/요약은 log_date로
+    // 묶고, 운영·비용 집계는 created_at을 쓴다. 이 분리로 조회 쿼리에서 타임존 변환이 사라진다.
+    logDate: date("log_date", { mode: "string" }).notNull(),
+    audioUrl: text("audio_url"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (memo) => [index("memo_user_id_log_date_idx").on(memo.userId, memo.logDate)]
+);
 
 export const summaries = pgTable("summary", {
   id: text("id")

@@ -1,9 +1,9 @@
 import OpenAI from "openai";
-import { and, asc, desc, eq, gte, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lt, lte } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { memos, summaries } from "@/lib/db/schema";
-import { dayRangeUtc, todayUtc } from "@/lib/date";
+import { dayRangeSeoul, todaySeoul } from "@/lib/date";
 import {
   SUMMARY_MODEL,
   buildSummaryMessages,
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   const userId = session.user.id;
 
   const body = await request.json().catch(() => null);
-  const from = body?.dateRange?.from ?? todayUtc();
+  const from = body?.dateRange?.from ?? todaySeoul();
   const to = body?.dateRange?.to ?? from;
   const format = typeof body?.format === "string" ? body.format : "default";
 
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   // 상한이 설정된 경우에만 집계한다. 기본값(무제한)에서는 쿼리 자체를 돌리지 않는다.
   const dailyLimit = summaryDailyLimit();
   if (dailyLimit !== null) {
-    const { start: todayStart, end: todayEnd } = dayRangeUtc(todayUtc());
+    const { start: todayStart, end: todayEnd } = dayRangeSeoul(todaySeoul());
     const todaysSummaries = await db
       .select({ id: summaries.id })
       .from(summaries)
@@ -72,11 +72,11 @@ export async function POST(request: Request) {
     .where(
       and(
         eq(memos.userId, userId),
-        gte(memos.createdAt, dayRangeUtc(from).start),
-        lt(memos.createdAt, dayRangeUtc(to).end)
+        gte(memos.logDate, from),
+        lte(memos.logDate, to)
       )
     )
-    .orderBy(asc(memos.createdAt));
+    .orderBy(asc(memos.logDate), asc(memos.createdAt));
 
   if (rows.length === 0) {
     return errorResponse(
@@ -179,7 +179,7 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const date = searchParams.get("date") ?? todayUtc();
+  const date = searchParams.get("date") ?? todaySeoul();
   const format = searchParams.get("format") ?? "default";
 
   if (!DATE_PATTERN.test(date)) {

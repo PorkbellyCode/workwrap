@@ -3,8 +3,9 @@ import { refresh } from "next/cache";
 import { and, asc, count, desc, eq, gte, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { memos, summaries, users } from "@/lib/db/schema";
-import { dayRangeUtc, todayUtc } from "@/lib/date";
+import { categories, memos, summaries, users } from "@/lib/db/schema";
+import { DEFAULT_CATEGORY_NAME } from "@/lib/category";
+import { todaySeoul } from "@/lib/date";
 import TopNav from "@/components/top-nav";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,10 +31,12 @@ const TREND_DAYS = 14;
 // 최근 TREND_DAYS일의 날짜 목록(오늘 포함). 데이터가 없는 날도 0으로 채워
 // 차트에 빈 구간이 생기지 않게 한다.
 function recentDates() {
-  const { start: todayStart } = dayRangeUtc(todayUtc());
+  // 날짜 문자열끼리의 계산이라 UTC 자정에 앵커를 두고 하루씩 뺀다.
+  // (KST 자정 시각을 앵커로 쓰면 toISOString()이 전날을 내놓는다)
+  const base = new Date(`${todaySeoul()}T00:00:00.000Z`);
   return Array.from({ length: TREND_DAYS }, (_, i) => {
     const d = new Date(
-      todayStart.getTime() - (TREND_DAYS - 1 - i) * 24 * 60 * 60 * 1000
+      base.getTime() - (TREND_DAYS - 1 - i) * 24 * 60 * 60 * 1000
     );
     return d.toISOString().slice(0, 10);
   });
@@ -206,6 +209,10 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                               .update(users)
                               .set({ approved: true })
                               .where(eq(users.id, user.id));
+                            // memo.category_id가 NOT NULL이라 카테고리가 없으면
+                            // 대시보드에서 메모를 아예 쓸 수 없다. 승인 시점에
+                            // 기본 카테고리를 만들어 빈 상태 자체를 없앤다.
+                            await ensureDefaultCategory(user.id);
                             refresh();
                           }}
                         >
@@ -224,6 +231,20 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
       </Card>
     </div>
   );
+}
+
+async function ensureDefaultCategory(userId: string) {
+  const existing = await db
+    .select({ id: categories.id })
+    .from(categories)
+    .where(eq(categories.userId, userId))
+    .limit(1);
+
+  if (existing.length > 0) return;
+
+  await db
+    .insert(categories)
+    .values({ userId, name: DEFAULT_CATEGORY_NAME });
 }
 
 function StatTile({ label, value }: { label: string; value: number }) {
