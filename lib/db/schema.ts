@@ -3,6 +3,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -120,12 +121,18 @@ export const summaries = pgTable("summary", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  categoryId: text("category_id")
+    .notNull()
+    .references(() => categories.id, { onDelete: "cascade" }),
   dateFrom: date("date_from", { mode: "string" }).notNull(),
   dateTo: date("date_to", { mode: "string" }).notNull(),
   format: text("format").notNull().default("default"),
-  // 같은 (user, 기간, format)에 대해 재요약할 때마다 1부터 증가.
+  // 같은 (user, category, 기간, format)에 대해 재요약할 때마다 1부터 증가.
   // 덮어쓰지 않고 이력을 남겨 이전 요약본과 비교할 수 있게 한다.
   version: integer("version").notNull().default(1),
   content: text("content").notNull(),
+  // 요약 생성 시점에 근거로 사용한 memo.id 스냅샷. 텍스트는 스냅샷하지 않고 표시할 때
+  // memo 테이블과 조인한다 — 재요약 전에 메모가 수정되는 일은 드물어 id만으로 충분하다고 판단.
+  memoIds: jsonb("memo_ids").notNull().$type<string[]>(),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });

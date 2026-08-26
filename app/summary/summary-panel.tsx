@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { streamSummary } from "@/lib/summary-stream";
 
 type Summary = {
   id: string;
@@ -18,16 +19,13 @@ type Summary = {
   createdAt: string;
 };
 
-type StreamEvent =
-  | { type: "delta"; text: string }
-  | { type: "done"; id: string; version: number; createdAt: string }
-  | { type: "error"; code: string; message: string };
-
 export default function SummaryPanel({
   date,
+  categoryId,
   initialSummaries,
 }: {
   date: string;
+  categoryId: string;
   initialSummaries: Summary[];
 }) {
   const [versions, setVersions] = useState<Summary[]>(initialSummaries);
@@ -38,62 +36,34 @@ export default function SummaryPanel({
   const [streamText, setStreamText] = useState("");
   const [error, setError] = useState("");
 
+  // 이 화면은 버전 히스토리다. 기간의 메모 전체로 다시 요약한다 —
+  // 메모를 골라 요약하는 일은 대시보드의 바텀시트가 맡는다.
   async function generate() {
     setStreaming(true);
     setStreamText("");
     setError("");
 
-    const res = await fetch("/api/summaries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dateRange: { from: date, to: date } }),
-    });
+    const outcome = await streamSummary(
+      { dateRange: { from: date, to: date }, categoryId },
+      setStreamText
+    );
 
-    // 스트림이 열리기 전에 실패한 경우(401/422/429 등)는 일반 JSON 에러로 온다.
-    if (!res.ok || !res.body) {
-      const data = await res.json().catch(() => null);
-      setError(data?.error?.message ?? "요약 생성에 실패했습니다.");
+    if (!outcome.ok) {
+      setError(outcome.message);
       setStreaming(false);
       return;
     }
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let text = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      // SSE는 빈 줄 두 개로 이벤트를 구분한다. 마지막 조각은 아직 미완성일 수 있어 남겨둔다.
-      const parts = buffer.split("\n\n");
-      buffer = parts.pop() ?? "";
-
-      for (const part of parts) {
-        if (!part.startsWith("data: ")) continue;
-        const event: StreamEvent = JSON.parse(part.slice(6));
-
-        if (event.type === "delta") {
-          text += event.text;
-          setStreamText(text);
-        } else if (event.type === "done") {
-          const saved: Summary = {
-            id: event.id,
-            version: event.version,
-            content: text,
-            createdAt: event.createdAt,
-          };
-          setVersions((prev) => [...prev, saved]);
-          setSelectedId(saved.id);
-          setStreamText("");
-        } else if (event.type === "error") {
-          setError(event.message);
-        }
-      }
-    }
-
+    setVersions((prev) => [
+      ...prev,
+      {
+        id: outcome.id,
+        version: outcome.version,
+        content: outcome.content,
+        createdAt: outcome.createdAt,
+      },
+    ]);
+    setSelectedId(outcome.id);
     setStreaming(false);
   }
 
@@ -115,7 +85,11 @@ export default function SummaryPanel({
               </CardDescription>
             )}
           </div>
-          <Button size="sm" onClick={generate} disabled={streaming}>
+          <Button
+            size="sm"
+            onClick={() => generate()}
+            disabled={streaming}
+          >
             {streaming ? (
               <Loader2 className="animate-spin" />
             ) : (

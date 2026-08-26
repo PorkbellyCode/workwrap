@@ -18,10 +18,13 @@ export default function CategoryTabs({
   categories,
   selectedId,
   date,
+  basePath = "/dashboard",
 }: {
   categories: Category[];
   selectedId: string;
   date: string;
+  // 탭이 어디로 이동할지 결정한다. 요약 화면에서도 같은 탭을 쓴다.
+  basePath?: string;
 }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
@@ -33,7 +36,7 @@ export default function CategoryTabs({
   const atLimit = categories.length >= MAX_CATEGORIES;
 
   function go(categoryId: string) {
-    router.push(`/dashboard?date=${date}&category=${categoryId}`);
+    router.push(`${basePath}?date=${date}&category=${categoryId}`);
   }
 
   async function add() {

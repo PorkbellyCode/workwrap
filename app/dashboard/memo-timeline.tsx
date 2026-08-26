@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, Pencil, Sparkles, Trash2, X } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
@@ -12,8 +12,10 @@ import {
   CardContent,
   CardHeader,
 } from "@/components/ui/card";
+import { streamSummary } from "@/lib/summary-stream";
 import RecordButton from "./record-button";
 import DatePicker from "./date-picker";
+import SummarySheet from "./summary-sheet";
 import type { Memo } from "./types";
 
 function timeOf(createdAt: string) {
@@ -36,14 +38,66 @@ export default function MemoTimeline({
 }) {
   const router = useRouter();
   const [memos, setMemos] = useState<Memo[]>(initialMemos);
+  // 요약에 포함할 메모를 고르는 상태. 새 메모는 기본으로 포함된다.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () => new Set(initialMemos.map((memo) => memo.id))
+  );
   const [text, setText] = useState("");
   const [pending, setPending] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
   const [error, setError] = useState("");
 
-  // 요약은 별도 화면이다. 지금 보고 있는 날짜를 그대로 넘긴다.
-  const summaryHref = `/summary?date=${date}`;
+  // 요약 시트 상태. 결과와 에러는 시트를 닫았다 열어도 유지된다.
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summaryStreaming, setSummaryStreaming] = useState(false);
+  const [summaryStreamText, setSummaryStreamText] = useState("");
+  const [summaryResult, setSummaryResult] = useState("");
+  const [summaryError, setSummaryError] = useState("");
+  // 마지막으로 요약에 쓴 선택. 시트를 다시 열 때 선택이 바뀌었는지 비교한다.
+  const [summarizedKey, setSummarizedKey] = useState<string | null>(null);
+
+  function toggleMemo(id: string, checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  }
+
+  async function runSummary(memoIds: string[]) {
+    setSummaryStreaming(true);
+    setSummaryStreamText("");
+    setSummaryError("");
+    setSummarizedKey(memoIds.slice().sort().join(","));
+
+    const outcome = await streamSummary(
+      { dateRange: { from: date, to: date }, categoryId, memoIds },
+      setSummaryStreamText
+    );
+
+    setSummaryStreaming(false);
+    if (outcome.ok) {
+      setSummaryResult(outcome.content);
+    } else {
+      setSummaryError(outcome.message);
+    }
+  }
+
+  // 시트를 열 때 선택이 마지막 요약 이후 바뀌었다면 곧바로 새 요약을 시작한다.
+  // 그냥 다시 열 때는 기존 결과를 보여주고, 다시 요약은 버튼으로 한다.
+  function openSummary() {
+    setSummaryOpen(true);
+    const ids = [...selectedIds];
+    const key = ids.slice().sort().join(",");
+    if (ids.length > 0 && !summaryStreaming && key !== summarizedKey) {
+      void runSummary(ids);
+    }
+  }
 
   async function addMemo(e: React.FormEvent) {
     e.preventDefault();
@@ -69,6 +123,7 @@ export default function MemoTimeline({
     setError("");
     setText("");
     setMemos((prev) => [...prev, memo]);
+    setSelectedIds((prev) => new Set(prev).add(memo.id));
     // 카테고리별 메모 건수(관리 팝업의 삭제 경고)를 최신으로 유지한다.
     router.refresh();
   }
@@ -77,6 +132,11 @@ export default function MemoTimeline({
     const res = await fetch(`/api/memos/${id}`, { method: "DELETE" });
     if (res.ok) {
       setMemos((prev) => prev.filter((memo) => memo.id !== id));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       router.refresh();
     }
   }
@@ -114,13 +174,18 @@ export default function MemoTimeline({
         <CardHeader className="shrink-0">
           <DatePicker date={date} onSelect={goToDate} />
           <CardAction>
-            <Link
-              href={summaryHref}
-              className={buttonVariants({ variant: "secondary", size: "sm" })}
+            {/* 누르면 바텀시트가 열리고, 선택이 바뀌었다면 요약이 바로 시작된다. */}
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={selectedIds.size === 0}
+              onClick={openSummary}
             >
               <Sparkles className="size-4" />
-              요약
-            </Link>
+              {selectedIds.size === memos.length
+                ? "요약"
+                : `요약 (${selectedIds.size})`}
+            </Button>
           </CardAction>
         </CardHeader>
         <CardContent className="min-h-0 flex-1 overflow-hidden">
@@ -134,8 +199,15 @@ export default function MemoTimeline({
             {memos.map((memo) => (
               <div
                 key={memo.id}
-                className="flex items-start gap-2 rounded-md border px-3 py-2"
+                className="flex items-center gap-2 rounded-md border px-3 py-2"
               >
+                {/* 편집 중에도 선택 상태는 그대로 보인다 — 요약 포함 여부는
+                    내용 수정과 독립적인 판단이므로 자리를 바꾸지 않는다. */}
+                <Checkbox
+                  checked={selectedIds.has(memo.id)}
+                  onCheckedChange={(checked) => toggleMemo(memo.id, checked)}
+                  aria-label="요약에 포함"
+                />
                 {editingId === memo.id ? (
                   <>
                     <Textarea
@@ -162,11 +234,11 @@ export default function MemoTimeline({
                   </>
                 ) : (
                   <>
-                    <span className="pt-1.5 text-xs tabular-nums text-muted-foreground">
-                      {timeOf(memo.createdAt)}
-                    </span>
-                    <span className="flex-1 pt-1.5 text-sm whitespace-pre-wrap">
+                    <span className="flex-1 text-sm whitespace-pre-wrap">
                       {memo.text}
+                    </span>
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                      {timeOf(memo.createdAt)}
                     </span>
                     <Button
                       variant="ghost"
@@ -231,6 +303,21 @@ export default function MemoTimeline({
           />
         </div>
       </form>
+
+      <SummarySheet
+        open={summaryOpen}
+        onOpenChange={setSummaryOpen}
+        date={date}
+        categoryId={categoryId}
+        memos={memos}
+        selectedIds={selectedIds}
+        onToggleMemo={toggleMemo}
+        streaming={summaryStreaming}
+        streamText={summaryStreamText}
+        result={summaryResult}
+        error={summaryError}
+        onGenerate={() => void runSummary([...selectedIds])}
+      />
     </div>
   );
 }
