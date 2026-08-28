@@ -126,6 +126,7 @@ export default function SummaryPanel({
           </div>
           <Button
             size="sm"
+            variant="brand"
             onClick={() => generate()}
             disabled={streaming}
           >

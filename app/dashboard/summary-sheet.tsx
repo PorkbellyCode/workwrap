@@ -112,6 +112,7 @@ export default function SummarySheet({
           </Link>
           <Button
             size="sm"
+            variant="brand"
             onClick={onGenerate}
             disabled={streaming || selectedIds.size === 0}
           >

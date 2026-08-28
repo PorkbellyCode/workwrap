@@ -139,7 +139,7 @@ export default function RecordButton({
   return (
     <Button
       type="button"
-      variant={recording ? "secondary" : "outline"}
+      variant={recording ? "secondary" : "brand"}
       size="icon"
       className={className}
       aria-label={recording ? "녹음 멈추기" : "음성으로 메모하기"}

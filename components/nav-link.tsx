@@ -2,6 +2,7 @@
 
 import Link, { useLinkStatus } from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import NavOverlay from "./nav-overlay";
 
 // useLinkStatus는 <Link>의 자손에서만 그 링크의 전환 상태를 읽을 수 있다.
@@ -24,10 +25,12 @@ export default function NavLink({
     <Link
       href={href}
       aria-current={current ? "page" : undefined}
-      className={buttonVariants({
-        variant: current ? "secondary" : "ghost",
-        size: "sm",
-      })}
+      // 현재 페이지는 회색 배경 대신 오렌지 글자로 표시한다.
+      // ghost는 자체 글자색을 안 주므로 text-brand와 부딪히지 않는다.
+      className={cn(
+        buttonVariants({ variant: "ghost", size: "sm" }),
+        current && "bg-muted text-brand",
+      )}
     >
       {label}
       <LinkOverlay />
