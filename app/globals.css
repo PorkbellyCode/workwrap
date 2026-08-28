@@ -23,6 +23,7 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-brand: var(--brand);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -65,6 +66,11 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  /* 유일한 유채색 포인트. PorkLog와 같은 오렌지를 쓴다.
+     PorkLog는 브랜드 원색 #e85d2a를 두고, 흰 배경 위의 전경(글자·아이콘)에는 대비가
+     모자라 #be4c22로 한 단계 죽여 쓴다. 스피너는 전경 표식이므로 그 규칙을 그대로 따랐다.
+     shadcn의 --accent(중립 회색 hover 배경)와는 완전히 다른 것이라 이름을 --brand로 두었다. */
+  --brand: #be4c22;
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -100,6 +106,8 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  /* 어두운 배경에서는 죽일 이유가 없어 브랜드 원색 그대로. */
+  --brand: #e85d2a;
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
@@ -128,4 +136,18 @@
   html {
     @apply font-sans;
   }
+}
+
+/* 화면전환 오버레이가 빠른 전환에서 반짝하고 사라지는 걸 막는다.
+   0.15초 동안 투명하게 두었다가 나타나므로, 그 안에 끝나는 전환에서는 아예 보이지 않는다.
+   JS 타이머 없이 CSS만으로 처리해 전환 경로에 상태가 하나도 늘지 않는다. */
+@keyframes delayed-appear {
+  to {
+    opacity: 1;
+  }
+}
+
+@utility delayed-appear {
+  opacity: 0;
+  animation: delayed-appear 0.01s linear 0.15s forwards;
 }

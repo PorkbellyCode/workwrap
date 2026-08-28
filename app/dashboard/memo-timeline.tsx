@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, Pencil, Sparkles, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { streamSummary } from "@/lib/summary-stream";
 import RecordButton from "./record-button";
+import NavOverlay from "@/components/nav-overlay";
 import DatePicker from "./date-picker";
 import SummarySheet from "./summary-sheet";
 import type { Memo } from "./types";
@@ -37,6 +38,7 @@ export default function MemoTimeline({
   initialMemos: Memo[];
 }) {
   const router = useRouter();
+  const [navigating, startNavigation] = useTransition();
   const [memos, setMemos] = useState<Memo[]>(initialMemos);
   // 요약에 포함할 메모를 고르는 상태. 새 메모는 기본으로 포함된다.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
@@ -162,14 +164,19 @@ export default function MemoTimeline({
     }
   }
 
+  // router.push는 프로미스를 돌려주지 않아서, 전환이 끝나는 시점을 알려면
+  // useTransition으로 감싸는 수밖에 없다.
   function goToDate(next: string) {
-    router.push(`/dashboard?date=${next}&category=${categoryId}`);
+    startNavigation(() => {
+      router.push(`/dashboard?date=${next}&category=${categoryId}`);
+    });
   }
 
   return (
     // 남는 높이를 전부 차지하고, 그 안에서 카드가 늘어난다.
     // 메모가 몇 개든 입력창 위치가 움직이지 않게 하기 위한 구조다.
     <div className="flex min-h-0 flex-1 flex-col gap-4">
+      {navigating && <NavOverlay />}
       <Card className="min-h-0 flex-1">
         <CardHeader className="shrink-0">
           <DatePicker date={date} onSelect={goToDate} />

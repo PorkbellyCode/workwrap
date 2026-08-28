@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { and, asc, desc, eq, gte, inArray, lt, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lt, lte } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { categories, memos, summaries } from "@/lib/db/schema";
@@ -83,6 +83,10 @@ export async function POST(request: Request) {
   }
 
   // 상한이 설정된 경우에만 집계한다. 기본값(무제한)에서는 쿼리 자체를 돌리지 않는다.
+  //
+  // 여기에는 deleted_at 조건을 걸지 않는다 — 의도적이다. 삭제된 버전까지 세야
+  // "생성 → 삭제 → 생성"으로 상한을 우회할 수 없다. 요약은 만든 순간 비용이 발생했고,
+  // 나중에 화면에서 감췄다고 그 호출이 없던 일이 되지는 않는다.
   const dailyLimit = summaryDailyLimit();
   if (dailyLimit !== null) {
     const { start: todayStart, end: todayEnd } = dayRangeSeoul(todaySeoul());
@@ -129,6 +133,9 @@ export async function POST(request: Request) {
     );
   }
 
+  // 다음 버전 번호도 삭제된 행을 포함해 계산한다. 번호는 한번 붙으면 고정이라
+  // v3을 지운 자리에 새 v3이 들어오면 안 된다(지운 v3과 새 v3이 같은 이름이 된다).
+  // 그래서 목록에는 v1, v3처럼 빈 번호가 남을 수 있다 — 의도한 결과다.
   const [latest] = await db
     .select({ version: summaries.version })
     .from(summaries)
@@ -263,7 +270,8 @@ export async function GET(request: Request) {
         eq(summaries.categoryId, categoryId),
         eq(summaries.dateFrom, date),
         eq(summaries.dateTo, date),
-        eq(summaries.format, format)
+        eq(summaries.format, format),
+        isNull(summaries.deletedAt)
       )
     )
     .orderBy(asc(summaries.version));

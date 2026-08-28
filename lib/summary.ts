@@ -10,6 +10,11 @@ export function summaryDailyLimit(): number | null {
   return limit > 0 ? limit : null;
 }
 
+// 소프트 삭제된 요약을 실제로 지우기까지의 보존 기간(일). /api/cron/purge-summaries가 쓴다.
+// quota는 "오늘 만들어진 행"만 세므로 하루보다 길기만 하면 정리 배치가 상한 집계를 건드리지 않는다.
+// 30일은 그 조건을 크게 넘기면서, 실수로 지웠으니 되살려달라는 요청을 받아줄 여유를 남기는 값이다.
+export const SUMMARY_PURGE_AFTER_DAYS = 30;
+
 export const SUMMARY_MODEL = "gpt-5.6-luna";
 
 const SYSTEM_PROMPT = `너는 개발자의 하루 작업 기록을 정리해주는 어시스턴트다.

@@ -135,4 +135,9 @@ export const summaries = pgTable("summary", {
   // memo 테이블과 조인한다 — 재요약 전에 메모가 수정되는 일은 드물어 id만으로 충분하다고 판단.
   memoIds: jsonb("memo_ids").notNull().$type<string[]>(),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  // 소프트 삭제. 화면에서만 감추고 행은 남긴다.
+  // quota가 별도 카운터 없이 "오늘 만들어진 summary 행 수"로 성립하기 때문에,
+  // 물리 삭제를 허용하면 "생성 → 삭제 → 생성"으로 상한을 무한히 우회할 수 있다.
+  // 보존 기간이 지난 행은 /api/cron/purge-summaries가 일괄 정리한다.
+  deletedAt: timestamp("deleted_at", { mode: "date" }),
 });

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, MoreVertical, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MAX_CATEGORIES } from "@/lib/category";
+import NavOverlay from "@/components/nav-overlay";
 import CategoryManager from "./category-manager";
 import type { Category } from "./types";
 
@@ -27,6 +28,7 @@ export default function CategoryTabs({
   basePath?: string;
 }) {
   const router = useRouter();
+  const [navigating, startNavigation] = useTransition();
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [pending, setPending] = useState(false);
@@ -36,7 +38,9 @@ export default function CategoryTabs({
   const atLimit = categories.length >= MAX_CATEGORIES;
 
   function go(categoryId: string) {
-    router.push(`${basePath}?date=${date}&category=${categoryId}`);
+    startNavigation(() => {
+      router.push(`${basePath}?date=${date}&category=${categoryId}`);
+    });
   }
 
   async function add() {
@@ -71,6 +75,7 @@ export default function CategoryTabs({
 
   return (
     <div className="flex flex-col gap-1">
+      {navigating && <NavOverlay />}
       <div className="flex items-center gap-1">
         <div className="flex flex-1 items-center gap-1 overflow-x-auto">
           {categories.map((category) => (

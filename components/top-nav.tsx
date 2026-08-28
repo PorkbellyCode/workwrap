@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { auth, signOut } from "@/auth";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import NavLink from "@/components/nav-link";
 
 // 대시보드/관리 페이지 공통 상단 메뉴.
 // "관리" 링크는 ADMIN_EMAIL 계정에게만 노출한다(라우트 자체의 접근 제어는 /admin에서 별도로 한다).
@@ -27,17 +27,12 @@ export default async function TopNav({
       <nav className="flex items-center gap-1">
         <span className="pr-2 text-sm font-medium">Workwrap</span>
         {links.map((link) => (
-          <Link
+          <NavLink
             key={link.key}
             href={link.href}
-            aria-current={link.key === current ? "page" : undefined}
-            className={buttonVariants({
-              variant: link.key === current ? "secondary" : "ghost",
-              size: "sm",
-            })}
-          >
-            {link.label}
-          </Link>
+            label={link.label}
+            current={link.key === current}
+          />
         ))}
       </nav>
 

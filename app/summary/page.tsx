@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { summaries, users } from "@/lib/db/schema";
@@ -62,7 +62,9 @@ export default async function SummaryPage({
         eq(summaries.categoryId, selectedCategoryId),
         eq(summaries.dateFrom, date),
         eq(summaries.dateTo, date),
-        eq(summaries.format, "default")
+        eq(summaries.format, "default"),
+        // 소프트 삭제된 버전은 화면에서 감춘다. 행 자체는 quota 집계용으로 남아 있다.
+        isNull(summaries.deletedAt)
       )
     )
     .orderBy(asc(summaries.version));
