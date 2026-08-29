@@ -121,7 +121,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const pendingCount = perUser.filter((u) => !u.approved).length;
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-6 py-6">
+    <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:px-6">
       <TopNav current="admin" />
 
       {/* 필터는 차트 카드 안이 아니라 위쪽 한 줄에 두고, 아래 타일과 차트를 함께 스코프한다. */}

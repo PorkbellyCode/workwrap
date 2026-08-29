@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import NavLink from "@/components/nav-link";
 import Link from "next/link";
+import { LogOut } from "lucide-react";
 
 // 대시보드/관리 페이지 공통 상단 메뉴.
 // "관리" 링크는 ADMIN_EMAIL 계정에게만 노출한다(라우트 자체의 접근 제어는 /admin에서 별도로 한다).
@@ -50,7 +51,10 @@ export default async function TopNav({
           }}
         >
           <Button type="submit" variant="outline" size="sm">
-            Sign out
+            {/* 좁은 화면에서는 아이콘만 — 관리자에게는 "관리" 링크가 하나 더 붙어
+                헤더가 뷰포트를 넘긴다. 글자는 sr-only로 남아 낭독기에는 그대로 읽힌다. */}
+            <LogOut className="sm:hidden" />
+            <span className="sr-only sm:not-sr-only">Sign out</span>
           </Button>
         </form>
       </div>
