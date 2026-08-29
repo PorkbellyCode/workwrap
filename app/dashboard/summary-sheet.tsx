@@ -21,6 +21,7 @@ export default function SummarySheet({
   onOpenChange,
   date,
   categoryId,
+  hasContext,
   memos,
   selectedIds,
   onToggleMemo,
@@ -34,6 +35,7 @@ export default function SummarySheet({
   onOpenChange: (open: boolean) => void;
   date: string;
   categoryId: string;
+  hasContext: boolean;
   memos: Memo[];
   selectedIds: Set<string>;
   onToggleMemo: (id: string, checked: boolean) => void;
@@ -102,6 +104,18 @@ export default function SummarySheet({
             <p className="text-sm text-muted-foreground">요약을 만드는 중…</p>
           )}
         </div>
+
+        {/* 컨텍스트 편집은 요약 화면에 있다(#6). 주 요약 경로인 이 시트에서
+            그리로 가는 통로가 없으면 기능의 존재를 알 방법이 없어서, 아직
+            아무것도 안 적었을 때만 한 줄로 안내한다. 적고 나면 사라진다. */}
+        {!hasContext && (
+          <Link
+            href={`/summary?date=${date}&category=${categoryId}`}
+            className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+          >
+            업무 배경을 적어두면 요약이 더 정확해져요 →
+          </Link>
+        )}
 
         <DialogFooter className="flex-row items-center justify-between">
           <Link

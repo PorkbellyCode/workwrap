@@ -2,12 +2,17 @@ import { redirect } from "next/navigation";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { summaries, users } from "@/lib/db/schema";
+// 지역 변수 categories(탭 목록)와 이름이 겹쳐 테이블은 별칭으로 가져온다.
+import {
+  categories as categoryTable,
+  summaries,
+  users,
+} from "@/lib/db/schema";
 import { listCategories } from "@/lib/db/categories";
 import { todaySeoul } from "@/lib/date";
 import TopNav from "@/components/top-nav";
 import CategoryTabs from "../dashboard/category-tabs";
-import SummaryPanel from "./summary-panel";
+import SummaryView from "./summary-view";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -21,7 +26,7 @@ export default async function SummaryPage({
   const userId = session.user.id;
 
   const [me] = await db
-    .select({ approved: users.approved })
+    .select({ approved: users.approved, context: users.context })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
@@ -48,11 +53,22 @@ export default async function SummaryPage({
       ? rawCategory
       : categories[0].id;
 
+  // 탭 목록(listCategories)은 이름과 메모 건수만 싣는다 — 컨텍스트까지 넣으면
+  // 대시보드 탭에도 쓰이는 타입이라 안 쓰는 본문이 클라이언트로 따라간다.
+  const [selectedCategory] = await db
+    .select({ name: categoryTable.name, context: categoryTable.context })
+    .from(categoryTable)
+    .where(eq(categoryTable.id, selectedCategoryId))
+    .limit(1);
+
   const summaryRows = await db
     .select({
       id: summaries.id,
       version: summaries.version,
       content: summaries.content,
+      // 그 버전이 어떤 메모로 만들어졌는지. 시트로 만든 버전은 부분집합이라
+      // 번호만으로는 같은 목록의 다른 버전과 구분되지 않는다.
+      memoIds: summaries.memoIds,
       createdAt: summaries.createdAt,
     })
     .from(summaries)
@@ -87,11 +103,13 @@ export default async function SummaryPage({
         basePath="/summary"
       />
 
-      <SummaryPanel
-        key={`${date}:${selectedCategoryId}`}
+      <SummaryView
         date={date}
         categoryId={selectedCategoryId}
+        categoryName={selectedCategory.name}
         initialSummaries={initialSummaries}
+        userContext={me.context ?? ""}
+        categoryContext={selectedCategory.context ?? ""}
       />
     </div>
   );

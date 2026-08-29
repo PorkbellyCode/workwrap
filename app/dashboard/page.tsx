@@ -2,7 +2,12 @@ import { redirect } from "next/navigation";
 import { and, asc, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { memos, users } from "@/lib/db/schema";
+// 지역 변수 categories(탭 목록)와 이름이 겹쳐 테이블은 별칭으로 가져온다.
+import {
+  categories as categoryTable,
+  memos,
+  users,
+} from "@/lib/db/schema";
 import { listCategories } from "@/lib/db/categories";
 import { todaySeoul } from "@/lib/date";
 import TopNav from "@/components/top-nav";
@@ -21,7 +26,7 @@ export default async function DashboardPage({
   const userId = session.user.id;
 
   const [me] = await db
-    .select({ approved: users.approved })
+    .select({ approved: users.approved, context: users.context })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
@@ -50,6 +55,12 @@ export default async function DashboardPage({
     categories.some((category) => category.id === rawCategory)
       ? rawCategory
       : categories[0].id;
+
+  const [selectedCategory] = await db
+    .select({ context: categoryTable.context })
+    .from(categoryTable)
+    .where(eq(categoryTable.id, selectedCategoryId))
+    .limit(1);
 
   const rows = await db
     .select({
@@ -101,6 +112,9 @@ export default async function DashboardPage({
         date={date}
         categoryId={selectedCategoryId}
         initialMemos={initialMemos}
+        // 컨텍스트 편집은 요약 화면에 있다. 여기서 요약을 만드는 사람이 그 존재를
+        // 영영 모르지 않도록, 비어 있을 때만 시트에서 안내한다.
+        hasContext={Boolean(me.context || selectedCategory.context)}
       />
     </div>
   );

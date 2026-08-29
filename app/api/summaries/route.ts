@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { and, asc, desc, eq, gte, inArray, isNull, lt, lte } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { categories, memos, summaries } from "@/lib/db/schema";
+import { categories, memos, summaries, users } from "@/lib/db/schema";
 import { dayRangeSeoul, todaySeoul } from "@/lib/date";
 import {
   SUMMARY_MODEL,
@@ -68,8 +68,13 @@ export async function POST(request: Request) {
   // (스트림이 열린 뒤에는 HTTP 상태 코드를 바꿀 수 없다)
 
   // 남의 카테고리로 요약을 만들지 못하게 소유권을 확인한다.
+  // 이름과 컨텍스트는 프롬프트에 들어간다 — 이미 도는 쿼리라 컬럼만 얹으면 된다.
   const [category] = await db
-    .select({ id: categories.id })
+    .select({
+      id: categories.id,
+      name: categories.name,
+      context: categories.context,
+    })
     .from(categories)
     .where(and(eq(categories.id, categoryId), eq(categories.userId, userId)))
     .limit(1);
@@ -154,12 +159,23 @@ export async function POST(request: Request) {
   const version = (latest?.version ?? 0) + 1;
   const memoIds = rows.map((row) => row.id);
 
+  const [me] = await db
+    .select({ context: users.context })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
   // 모듈 최상단에서 만들면 빌드 타임에 평가돼 OPENAI_API_KEY가 없는 환경에서 빌드가 깨진다.
   const openai = new OpenAI();
 
   const completion = await openai.chat.completions.create({
     model: SUMMARY_MODEL,
-    messages: buildSummaryMessages(rows.map((row) => row.text)),
+    messages: buildSummaryMessages({
+      memoTexts: rows.map((row) => row.text),
+      categoryName: category.name,
+      userContext: me?.context ?? null,
+      categoryContext: category.context,
+    }),
     // 메모를 정리해 다시 쓰는 작업이라 추론 토큰이 필요 없다. 비용 절감을 위해 끈다.
     reasoning_effort: "none",
     stream: true,

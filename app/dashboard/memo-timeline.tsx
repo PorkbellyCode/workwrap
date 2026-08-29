@@ -30,12 +30,15 @@ export default function MemoTimeline({
   date,
   categoryId,
   initialMemos,
+  hasContext,
 }: {
   date: string;
   // 항상 하나의 카테고리를 보고 있다('전체' 탭 없음).
   // 새 메모도 이 카테고리로 들어가므로 입력 영역에 별도 선택기가 필요 없다.
   categoryId: string;
   initialMemos: Memo[];
+  // 사용자 전역 또는 이 카테고리에 컨텍스트가 하나라도 적혀 있는지.
+  hasContext: boolean;
 }) {
   const router = useRouter();
   const [navigating, startNavigation] = useTransition();
@@ -56,8 +59,6 @@ export default function MemoTimeline({
   const [summaryStreamText, setSummaryStreamText] = useState("");
   const [summaryResult, setSummaryResult] = useState("");
   const [summaryError, setSummaryError] = useState("");
-  // 마지막으로 요약에 쓴 선택. 시트를 다시 열 때 선택이 바뀌었는지 비교한다.
-  const [summarizedKey, setSummarizedKey] = useState<string | null>(null);
 
   function toggleMemo(id: string, checked: boolean) {
     setSelectedIds((prev) => {
@@ -75,7 +76,6 @@ export default function MemoTimeline({
     setSummaryStreaming(true);
     setSummaryStreamText("");
     setSummaryError("");
-    setSummarizedKey(memoIds.slice().sort().join(","));
 
     const outcome = await streamSummary(
       { dateRange: { from: date, to: date }, categoryId, memoIds },
@@ -87,17 +87,6 @@ export default function MemoTimeline({
       setSummaryResult(outcome.content);
     } else {
       setSummaryError(outcome.message);
-    }
-  }
-
-  // 시트를 열 때 선택이 마지막 요약 이후 바뀌었다면 곧바로 새 요약을 시작한다.
-  // 그냥 다시 열 때는 기존 결과를 보여주고, 다시 요약은 버튼으로 한다.
-  function openSummary() {
-    setSummaryOpen(true);
-    const ids = [...selectedIds];
-    const key = ids.slice().sort().join(",");
-    if (ids.length > 0 && !summaryStreaming && key !== summarizedKey) {
-      void runSummary(ids);
     }
   }
 
@@ -181,12 +170,13 @@ export default function MemoTimeline({
         <CardHeader className="shrink-0">
           <DatePicker date={date} onSelect={goToDate} />
           <CardAction>
-            {/* 누르면 바텀시트가 열리고, 선택이 바뀌었다면 요약이 바로 시작된다. */}
+            {/* 시트를 열기만 한다. 요약 생성은 시트 안의 "요약하기" 버튼으로만 시작된다 —
+                요약은 API 호출이고 quota를 소모하므로 명시적인 의도로만 발생해야 한다. */}
             <Button
               variant="secondary"
               size="sm"
               disabled={selectedIds.size === 0}
-              onClick={openSummary}
+              onClick={() => setSummaryOpen(true)}
             >
               <Sparkles className="size-4" />
               {selectedIds.size === memos.length
@@ -316,6 +306,7 @@ export default function MemoTimeline({
         onOpenChange={setSummaryOpen}
         date={date}
         categoryId={categoryId}
+        hasContext={hasContext}
         memos={memos}
         selectedIds={selectedIds}
         onToggleMemo={toggleMemo}

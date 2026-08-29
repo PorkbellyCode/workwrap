@@ -1,0 +1,123 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { MAX_CONTEXT_LENGTH } from "@/lib/context";
+
+// 요약 프롬프트에 붙는 배경 정보를 여기서 편집한다.
+//
+// ⋮ 카테고리 관리 팝업이 아니라 이 화면에 둔 이유: 그 팝업은 "카테고리 자체의
+// 관리(이름·삭제)"고 컨텍스트는 요약의 입력값이다. 대시보드 요약 시트에 넣는 안도
+// 폐기했다 — 시트는 이미 체크리스트와 결과로 85dvh가 차 있어, 여기에 두 개를 더
+// 얹으면 요약을 보려고 연 시트에서 요약이 화면 밖으로 밀린다.
+//
+// 접이식으로 두지 않는다. 이 화면은 카드 하나뿐이라 세로 여백이 남고,
+// 접어두면 컨텍스트의 존재 자체를 잊는다.
+export default function ContextEditor({
+  userContext,
+  categoryId,
+  categoryName,
+  categoryContext,
+  onSave,
+}: {
+  userContext: string;
+  categoryId: string;
+  categoryName: string;
+  categoryContext: string;
+  // 요약이 이 저장을 기다릴 수 있도록 진행 중인 요청을 부모에게 넘긴다.
+  onSave: (request: Promise<unknown>) => void;
+}) {
+  const router = useRouter();
+  const [mine, setMine] = useState(userContext);
+  const [work, setWork] = useState(categoryContext);
+  const [error, setError] = useState("");
+
+  // 카테고리 이름 편집과 같은 방식으로 blur에 저장한다. 저장 버튼을 두면
+  // 안 누른 채로 요약을 돌리는 일이 생긴다.
+  async function save(url: string, value: string, saved: string) {
+    if (value.trim() === saved.trim()) return;
+
+    const request = fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ context: value }),
+    });
+    onSave(request);
+    const res = await request;
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setError(data?.error?.message ?? "컨텍스트를 저장하지 못했어요.");
+      return;
+    }
+
+    setError("");
+    router.refresh();
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">요약에 참고할 컨텍스트</CardTitle>
+      </CardHeader>
+
+      <CardContent className="flex flex-col gap-4">
+        <Field
+          label="나에 대해"
+          placeholder="나에 대해 배경지식을 작성해주세요, 요약 결과 품질 향상에 도움이 됩니다."
+          value={mine}
+          onChange={setMine}
+          onBlur={() => save("/api/me", mine, userContext)}
+        />
+
+        <Field
+          label={`${categoryName} 에 대해`}
+          placeholder={`${categoryName}에 대한 배경지식을 작성해주세요, 요약 결과 품질 향상에 도움이 됩니다.`}
+          value={work}
+          onChange={setWork}
+          onBlur={() =>
+            save(`/api/categories/${categoryId}`, work, categoryContext)
+          }
+        />
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function Field({
+  label,
+  placeholder,
+  value,
+  onChange,
+  onBlur,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+  onBlur: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-baseline justify-between">
+        <span className="text-sm font-medium">{label}</span>
+        <span className="text-xs tabular-nums text-muted-foreground">
+          {value.length} / {MAX_CONTEXT_LENGTH}
+        </span>
+      </div>
+      <Textarea
+        value={value}
+        placeholder={placeholder}
+        maxLength={MAX_CONTEXT_LENGTH}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
+        // 대시보드 입력창과 같은 처리 — 리사이즈 핸들은 끄고 스크롤바는 숨긴다.
+        className="max-h-40 min-h-20 resize-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      />
+    </div>
+  );
+}

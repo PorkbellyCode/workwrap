@@ -18,6 +18,7 @@ type Summary = {
   id: string;
   version: number;
   content: string;
+  memoIds: string[];
   createdAt: string;
 };
 
@@ -25,10 +26,13 @@ export default function SummaryPanel({
   date,
   categoryId,
   initialSummaries,
+  waitForContextSave,
 }: {
   date: string;
   categoryId: string;
   initialSummaries: Summary[];
+  // 컨텍스트 저장이 끝나기 전에 요약을 시작하면 옛 컨텍스트로 요약된다.
+  waitForContextSave: () => Promise<void>;
 }) {
   const router = useRouter();
   const [navigating, startNavigation] = useTransition();
@@ -59,6 +63,10 @@ export default function SummaryPanel({
     // 확인창을 열어둔 채 요약을 돌리면 끝난 뒤 엉뚱한 버전에 확인창이 붙는다.
     setConfirmingRemove(false);
 
+    // 방금 고친 컨텍스트가 저장되기 전에 요약이 출발하면 옛 값으로 요약된다.
+    // 버튼을 누른 직후라 스피너가 이미 돌고 있어 기다림이 드러나지 않는다.
+    await waitForContextSave();
+
     const outcome = await streamSummary(
       { dateRange: { from: date, to: date }, categoryId },
       setStreamText
@@ -76,6 +84,7 @@ export default function SummaryPanel({
         id: outcome.id,
         version: outcome.version,
         content: outcome.content,
+        memoIds: outcome.memoIds,
         createdAt: outcome.createdAt,
       },
     ]);
@@ -198,6 +207,14 @@ export default function SummaryPanel({
         )}
 
         {error && <p className="text-sm text-destructive">{error}</p>}
+
+        {/* 버전 번호만으로는 무엇으로 만든 요약인지 알 수 없다 — 시트는 체크한
+            메모만, 이 화면의 "다시 요약"은 그 날 전체를 쓰기 때문이다. */}
+        {selected && !streaming && (
+          <p className="text-xs text-muted-foreground">
+            메모 {selected.memoIds.length}건 기준
+          </p>
+        )}
 
         {shown ? (
           <p className="whitespace-pre-wrap text-sm leading-relaxed">{shown}</p>

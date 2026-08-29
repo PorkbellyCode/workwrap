@@ -27,6 +27,10 @@ export const users = pgTable("user", {
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
   approved: boolean("approved").notNull().default(false),
+  // 요약 프롬프트에 붙는 사용자 전역 배경(직무, 팀, 자주 쓰는 약어 등).
+  // 길이 상한(MAX_CONTEXT_LENGTH)은 서버에서 검증한다 — varchar로 박으면
+  // 숫자를 바꿀 때마다 마이그레이션이 필요해진다.
+  context: text("context"),
   requestedAt: timestamp("requested_at", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
@@ -88,6 +92,9 @@ export const categories = pgTable("category", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  // 이 업무에 한정된 배경. 요약은 항상 카테고리 하나 안에서 일어나므로
+  // 프롬프트에는 그 요약의 카테고리 컨텍스트 하나만 붙는다.
+  context: text("context"),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 

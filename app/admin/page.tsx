@@ -90,15 +90,11 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         approved: users.approved,
         requestedAt: users.requestedAt,
         createdAt: users.createdAt,
-        memoCount: sql<number>`(
-          select count(*)::int from ${memos} where ${memos.userId} = ${users.id}
-        )`,
-        summaryCount: sql<number>`(
-          select count(*)::int from ${summaries} where ${summaries.userId} = ${users.id}
-        )`,
-        lastMemoAt: sql<Date | null>`(
-          select max(${memos.createdAt}) from ${memos} where ${memos.userId} = ${users.id}
-        )`,
+        // sql 템플릿을 select 목록에 쓰면 drizzle이 컬럼의 테이블 접두어를 떼어내
+        // 상관 서브쿼리의 바깥 참조가 안쪽 테이블로 붙어버린다. $count는 접두어를
+        // 유지하므로 그대로 쓴다.
+        memoCount: db.$count(memos, eq(memos.userId, users.id)),
+        summaryCount: db.$count(summaries, eq(summaries.userId, users.id)),
       })
       .from(users)
       .orderBy(asc(users.approved), desc(users.createdAt)),
@@ -167,7 +163,6 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                   <TableHead>이메일</TableHead>
                   <TableHead className="text-right">메모</TableHead>
                   <TableHead className="text-right">요약</TableHead>
-                  <TableHead>마지막 활동</TableHead>
                   <TableHead className="text-right">상태</TableHead>
                 </TableRow>
               </TableHeader>
@@ -186,11 +181,6 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {user.summaryCount}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {user.lastMemoAt
-                        ? new Date(user.lastMemoAt).toLocaleDateString("ko-KR")
-                        : "—"}
                     </TableCell>
                     <TableCell className="text-right">
                       {user.approved ? (

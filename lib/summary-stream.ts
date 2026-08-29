@@ -9,11 +9,24 @@ export type SummaryStreamBody = {
 
 type StreamEvent =
   | { type: "delta"; text: string }
-  | { type: "done"; id: string; version: number; createdAt: string }
+  | {
+      type: "done";
+      id: string;
+      version: number;
+      memoIds: string[];
+      createdAt: string;
+    }
   | { type: "error"; code: string; message: string };
 
 export type SummaryStreamResult =
-  | { ok: true; id: string; version: number; createdAt: string; content: string }
+  | {
+      ok: true;
+      id: string;
+      version: number;
+      memoIds: string[];
+      createdAt: string;
+      content: string;
+    }
   | { ok: false; message: string };
 
 // onDelta에는 지금까지 누적된 본문 전체가 들어간다 — 호출부는 그대로 state에 담아
@@ -73,6 +86,7 @@ export async function streamSummary(
       ok: true,
       id: saved.id,
       version: saved.version,
+      memoIds: saved.memoIds,
       createdAt: saved.createdAt,
       content: text,
     };
