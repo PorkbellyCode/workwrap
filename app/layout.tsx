@@ -24,11 +24,24 @@ const plexSansKr = IBM_Plex_Sans_KR({
 // 이게 없으면 대시보드의 입력창과 녹음 버튼이 키보드 뒤로 가려진다.
 export const viewport: Viewport = {
   interactiveWidget: "resizes-content",
+  // 안드로이드 상태 표시줄 색. manifest의 theme_color는 값이 하나뿐이라 테마를 따라가지 못하므로
+  // 실행 중 색은 여기서 스킴별로 준다.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
 };
 
 export const metadata: Metadata = {
   title: "Workwrap",
   description: "작업 중 남긴 음성 메모를 모아 하루를 요약해주는 서비스",
+  applicationName: "Workwrap",
+  // iOS는 manifest의 icons를 보지 않는다. 홈 화면 아이콘은 app/apple-icon.png에서 온다.
+  appleWebApp: {
+    capable: true,
+    title: "Workwrap",
+    statusBarStyle: "default",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

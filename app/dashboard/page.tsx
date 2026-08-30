@@ -11,6 +11,7 @@ import {
 import { listCategories } from "@/lib/db/categories";
 import { todaySeoul } from "@/lib/date";
 import TopNav from "@/components/top-nav";
+import { InstallPrompt } from "@/components/install-prompt";
 import CategoryTabs from "./category-tabs";
 import MemoTimeline from "./memo-timeline";
 
@@ -96,6 +97,8 @@ export default async function DashboardPage({
     <div className="mx-auto flex h-dvh w-full max-w-xl flex-col gap-4 px-6 py-6">
       {/* flex-1인 카드가 남는 높이를 가져가려면 위아래 고정 영역이 줄어들지 않아야 한다. */}
       <div className="flex shrink-0 flex-col gap-4">
+        <InstallPrompt />
+
         <TopNav current="dashboard" />
 
         <CategoryTabs
