@@ -13,6 +13,7 @@ import {
 import { streamSummary } from "@/lib/summary-stream";
 import NavOverlay from "@/components/nav-overlay";
 import SummaryActions from "@/components/summary-actions";
+import SummaryMarkdown from "@/components/summary-markdown";
 import DatePicker from "../dashboard/date-picker";
 
 type Summary = {
@@ -220,7 +221,7 @@ export default function SummaryPanel({
         )}
 
         {shown ? (
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">{shown}</p>
+          <SummaryMarkdown content={shown} streaming={streaming} />
         ) : (
           !streaming &&
           !error && (

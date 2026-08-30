@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import SummaryActions from "@/components/summary-actions";
+import SummaryMarkdown from "@/components/summary-markdown";
 import type { Memo } from "./types";
 
 // 대시보드 위에서 열리는 요약 바텀시트. 포함할 메모를 고르는 체크리스트와
@@ -88,9 +89,7 @@ export default function SummarySheet({
         <div className="flex min-h-24 flex-1 flex-col overflow-y-auto rounded-md border bg-muted/30 p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {error && <p className="text-sm text-destructive">{error}</p>}
           {shown ? (
-            <p className="whitespace-pre-wrap text-sm leading-relaxed">
-              {shown}
-            </p>
+            <SummaryMarkdown content={shown} streaming={streaming} />
           ) : (
             !streaming &&
             !error && (
