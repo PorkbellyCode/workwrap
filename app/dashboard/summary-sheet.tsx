@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import SummaryActions from "@/components/summary-actions";
 import type { Memo } from "./types";
 
 // 대시보드 위에서 열리는 요약 바텀시트. 포함할 메모를 고르는 체크리스트와
@@ -118,12 +119,17 @@ export default function SummarySheet({
         )}
 
         <DialogFooter className="flex-row items-center justify-between">
-          <Link
-            href={`/summary?date=${date}&category=${categoryId}`}
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
-          >
-            버전 히스토리
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link
+              href={`/summary?date=${date}&category=${categoryId}`}
+              className={buttonVariants({ variant: "ghost", size: "sm" })}
+            >
+              버전 히스토리
+            </Link>
+            {/* 만든 직후가 복사하고 싶은 순간이라 시트에도 둔다. 아이콘 버튼이라
+                이미 상한까지 찬 85dvh에 부담을 주지 않는다. */}
+            {result && !streaming && <SummaryActions content={result} />}
+          </div>
           <Button
             size="sm"
             variant="brand"

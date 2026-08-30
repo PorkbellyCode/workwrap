@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { streamSummary } from "@/lib/summary-stream";
 import NavOverlay from "@/components/nav-overlay";
+import SummaryActions from "@/components/summary-actions";
 import DatePicker from "../dashboard/date-picker";
 
 type Summary = {
@@ -193,15 +194,17 @@ export default function SummaryPanel({
                   </Button>
                 </span>
               ) : (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="ml-auto"
-                  aria-label={`v${selected.version} 삭제`}
-                  onClick={() => setConfirmingRemove(true)}
-                >
-                  <Trash2 className="size-4 text-destructive" />
-                </Button>
+                <span className="ml-auto flex items-center gap-1">
+                  <SummaryActions content={selected.content} />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`v${selected.version} 삭제`}
+                    onClick={() => setConfirmingRemove(true)}
+                  >
+                    <Trash2 className="size-4 text-destructive" />
+                  </Button>
+                </span>
               ))}
           </div>
         )}
