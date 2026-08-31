@@ -12,6 +12,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     verificationTokensTable: verificationTokens,
   }),
   providers: [Google],
+  pages: { error: "/dashboard" },
   callbacks: {
     // 기본 session 콜백은 name/email/image만 남기고 id를 지워버리기 때문에,
     // API 라우트에서 session.user.id로 소유자를 판별할 수 있도록 직접 채워준다.
