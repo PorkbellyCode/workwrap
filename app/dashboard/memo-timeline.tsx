@@ -83,7 +83,7 @@ function DayCardPreview({
   memos: Memo[] | null;
 }) {
   return (
-    <Card className="h-full min-h-0">
+    <Card className="h-full min-h-0 ring-0 border border-foreground/10">
       <CardHeader className="shrink-0">
         <Button variant="secondary" size="sm" disabled className="w-fit">
           <CalendarDays className="size-4" />
@@ -300,7 +300,7 @@ export default function MemoTimeline({
             style={{ width: panelWidth || "33.3333%" }}
             className="h-full shrink-0"
           >
-            <Card className="h-full min-h-0">
+            <Card className="h-full min-h-0 ring-0 border border-foreground/10">
               <CardHeader className="shrink-0">
                 <DatePicker date={date} onSelect={goToDate} />
                 <CardAction>

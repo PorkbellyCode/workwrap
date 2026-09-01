@@ -64,7 +64,7 @@ function SummaryCardPreview({
   summaries: Summary[] | null;
 }) {
   return (
-    <Card className="h-full min-h-0">
+    <Card className="h-full min-h-0 ring-0 border border-foreground/10">
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <Button variant="secondary" size="sm" disabled className="w-fit">
@@ -242,7 +242,7 @@ export default function SummaryPanel({
             style={{ width: panelWidth || "33.3333%" }}
             className="max-h-[60vh] shrink-0"
           >
-            <Card className="h-full min-h-0">
+            <Card className="h-full min-h-0 ring-0 border border-foreground/10">
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex flex-col gap-1.5">
