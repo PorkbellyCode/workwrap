@@ -31,10 +31,20 @@ export default async function PendingPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center gap-4 px-6 py-10">
-      <div className="flex justify-end">
+    <div className="relative mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center gap-8 px-6 py-10">
+      <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
+
+      {/* /login과 같은 워드마크 — 승인 전 화면끼리 톤을 맞춘다. */}
+      <header className="flex flex-col items-center gap-2 text-center">
+        <h1 className="text-3xl font-medium tracking-tight">
+          Work<span className="text-brand">Wrap</span>
+        </h1>
+        <p className="text-sm text-balance text-muted-foreground">
+          작업 중 남긴 음성 메모를 모아 하루를 요약해요.
+        </p>
+      </header>
 
       <Card>
         <CardHeader>
