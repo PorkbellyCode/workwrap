@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Sparkles, Trash2 } from "lucide-react";
+import { CalendarDays, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -51,6 +51,37 @@ function SummaryPreview({ summaries }: { summaries: Summary[] | null }) {
     );
   }
   return <SummaryMarkdown content={latest.content} streaming={false} />;
+}
+
+// 드래그 중 옆에 살짝 보이는 이전·다음 날 카드. 대시보드와 같은 이유로 헤더까지
+// 포함해 카드 전체를 통째로 그린다 — 헤더를 고정해두고 본문만 옮기면 그 경계에서
+// 카드가 잘려 보인다.
+function SummaryCardPreview({
+  date,
+  summaries,
+}: {
+  date: string;
+  summaries: Summary[] | null;
+}) {
+  return (
+    <Card className="h-full min-h-0">
+      <CardHeader>
+        <div className="flex items-start justify-between gap-4">
+          <Button variant="secondary" size="sm" disabled className="w-fit">
+            <CalendarDays className="size-4" />
+            {date}
+          </Button>
+          <Button size="sm" variant="brand" disabled>
+            <Sparkles className="size-4" />
+            요약하기
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="min-h-0 flex-1 overflow-y-auto">
+        <SummaryPreview summaries={summaries} />
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function SummaryPanel({
@@ -177,36 +208,11 @@ export default function SummaryPanel({
   }
 
   return (
-    <Card>
+    <div>
       {navigating && <NavOverlay />}
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1.5">
-            <DatePicker date={date} onSelect={goToDate} />
-            {versions.length > 0 && (
-              <CardDescription>
-                {versions.length}개 버전 생성됨
-              </CardDescription>
-            )}
-          </div>
-          <Button
-            size="sm"
-            variant="brand"
-            onClick={() => generate()}
-            disabled={streaming}
-          >
-            {streaming ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <Sparkles className="size-4" />
-            )}
-            {versions.length > 0 ? "다시 요약" : "요약하기"}
-          </Button>
-        </div>
-      </CardHeader>
-
-      {/* max-h로 높이를 미리 정해둔다 — 옆 날짜 미리보기 길이가 제각각이라
-          그대로 두면 프리페치가 끝나는 순간 페이지 높이가 출렁인다. */}
+      {/* 헤더까지 포함해 카드 전체가 드래그 대상이다. max-h로 높이도 미리
+          정해둔다 — 옆 날짜 미리보기 길이가 제각각이라 그대로 두면 프리페치가
+          끝나는 순간 페이지 높이가 출렁인다. */}
       <div
         ref={containerRef}
         className="max-h-[60vh] overflow-hidden"
@@ -224,107 +230,143 @@ export default function SummaryPanel({
         >
           <div
             style={{ width: panelWidth || "33.3333%" }}
-            className="max-h-[60vh] shrink-0 overflow-y-auto px-(--card-spacing) pr-2"
+            className="max-h-[60vh] shrink-0 pr-2"
           >
-            <SummaryPreview summaries={prevSummaries} />
+            <SummaryCardPreview
+              date={shiftDate(date, -1)}
+              summaries={prevSummaries}
+            />
           </div>
-
-          <CardContent
-            style={{ width: panelWidth || "33.3333%" }}
-            className="flex max-h-[60vh] shrink-0 flex-col gap-4 overflow-y-auto"
-          >
-            {/* 버전이 하나뿐이어도 이 줄을 띄운다 — 삭제 버튼이 여기 붙기 때문이다.
-                칩마다 ×를 달지는 않는다. 모바일엔 hover가 없어 ×가 항상 떠 있게 되고
-                칩의 터치 타겟이 좁아진다(카테고리 탭에서 같은 이유로 폐기한 안).
-                지울 수 있는 건 언제나 "지금 보고 있는 버전" 하나다. */}
-            {versions.length > 0 && !streaming && (
-              <div className="flex flex-wrap items-center gap-1.5">
-                {versions.map((v) => (
-                  <Button
-                    key={v.id}
-                    size="sm"
-                    variant={v.id === selectedId ? "secondary" : "ghost"}
-                    onClick={() => setSelectedId(v.id)}
-                  >
-                    v{v.version}
-                  </Button>
-                ))}
-
-                {selected &&
-                  (confirmingRemove ? (
-                    // 확인은 별도 모달 없이 이 줄에서 끝낸다(카테고리 관리 팝업과 같은 방식).
-                    <span className="ml-auto flex items-center gap-1.5">
-                      <span className="text-sm text-muted-foreground">
-                        v{selected.version} 삭제
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={removing}
-                        onClick={() => setConfirmingRemove(false)}
-                      >
-                        취소
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        disabled={removing}
-                        onClick={() => remove()}
-                      >
-                        {removing && <Loader2 className="animate-spin" />}
-                        삭제
-                      </Button>
-                    </span>
-                  ) : (
-                    <span className="ml-auto flex items-center gap-1">
-                      <SummaryActions content={selected.content} />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`v${selected.version} 삭제`}
-                        onClick={() => setConfirmingRemove(true)}
-                      >
-                        <Trash2 className="size-4 text-destructive" />
-                      </Button>
-                    </span>
-                  ))}
-              </div>
-            )}
-
-            {error && <p className="text-sm text-destructive">{error}</p>}
-
-            {/* 버전 번호만으로는 무엇으로 만든 요약인지 알 수 없다 — 시트는 체크한
-                메모만, 이 화면의 "다시 요약"은 그 날 전체를 쓰기 때문이다. */}
-            {selected && !streaming && (
-              <p className="text-xs text-muted-foreground">
-                메모 {selected.memoIds.length}건 기준
-              </p>
-            )}
-
-            {shown ? (
-              <SummaryMarkdown content={shown} streaming={streaming} />
-            ) : (
-              !streaming &&
-              !error && (
-                <p className="text-sm text-muted-foreground">
-                  이 날 쌓인 메모를 모아 요약을 만들어드려요.
-                </p>
-              )
-            )}
-
-            {streaming && !streamText && (
-              <p className="text-sm text-muted-foreground">요약을 만드는 중…</p>
-            )}
-          </CardContent>
 
           <div
             style={{ width: panelWidth || "33.3333%" }}
-            className="max-h-[60vh] shrink-0 overflow-y-auto px-(--card-spacing) pl-2"
+            className="max-h-[60vh] shrink-0 px-2"
           >
-            <SummaryPreview summaries={nextSummaries} />
+            <Card className="h-full min-h-0">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <DatePicker date={date} onSelect={goToDate} />
+                    {versions.length > 0 && (
+                      <CardDescription>
+                        {versions.length}개 버전 생성됨
+                      </CardDescription>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="brand"
+                    onClick={() => generate()}
+                    disabled={streaming}
+                  >
+                    {streaming ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <Sparkles className="size-4" />
+                    )}
+                    {versions.length > 0 ? "다시 요약" : "요약하기"}
+                  </Button>
+                </div>
+              </CardHeader>
+
+              <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+                {/* 버전이 하나뿐이어도 이 줄을 띄운다 — 삭제 버튼이 여기 붙기 때문이다.
+                    칩마다 ×를 달지는 않는다. 모바일엔 hover가 없어 ×가 항상 떠 있게 되고
+                    칩의 터치 타겟이 좁아진다(카테고리 탭에서 같은 이유로 폐기한 안).
+                    지울 수 있는 건 언제나 "지금 보고 있는 버전" 하나다. */}
+                {versions.length > 0 && !streaming && (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {versions.map((v) => (
+                      <Button
+                        key={v.id}
+                        size="sm"
+                        variant={v.id === selectedId ? "secondary" : "ghost"}
+                        onClick={() => setSelectedId(v.id)}
+                      >
+                        v{v.version}
+                      </Button>
+                    ))}
+
+                    {selected &&
+                      (confirmingRemove ? (
+                        // 확인은 별도 모달 없이 이 줄에서 끝낸다(카테고리 관리 팝업과 같은 방식).
+                        <span className="ml-auto flex items-center gap-1.5">
+                          <span className="text-sm text-muted-foreground">
+                            v{selected.version} 삭제
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={removing}
+                            onClick={() => setConfirmingRemove(false)}
+                          >
+                            취소
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={removing}
+                            onClick={() => remove()}
+                          >
+                            {removing && <Loader2 className="animate-spin" />}
+                            삭제
+                          </Button>
+                        </span>
+                      ) : (
+                        <span className="ml-auto flex items-center gap-1">
+                          <SummaryActions content={selected.content} />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`v${selected.version} 삭제`}
+                            onClick={() => setConfirmingRemove(true)}
+                          >
+                            <Trash2 className="size-4 text-destructive" />
+                          </Button>
+                        </span>
+                      ))}
+                  </div>
+                )}
+
+                {error && <p className="text-sm text-destructive">{error}</p>}
+
+                {/* 버전 번호만으로는 무엇으로 만든 요약인지 알 수 없다 — 시트는 체크한
+                    메모만, 이 화면의 "다시 요약"은 그 날 전체를 쓰기 때문이다. */}
+                {selected && !streaming && (
+                  <p className="text-xs text-muted-foreground">
+                    메모 {selected.memoIds.length}건 기준
+                  </p>
+                )}
+
+                {shown ? (
+                  <SummaryMarkdown content={shown} streaming={streaming} />
+                ) : (
+                  !streaming &&
+                  !error && (
+                    <p className="text-sm text-muted-foreground">
+                      이 날 쌓인 메모를 모아 요약을 만들어드려요.
+                    </p>
+                  )
+                )}
+
+                {streaming && !streamText && (
+                  <p className="text-sm text-muted-foreground">요약을 만드는 중…</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div
+            style={{ width: panelWidth || "33.3333%" }}
+            className="max-h-[60vh] shrink-0 pl-2"
+          >
+            <SummaryCardPreview
+              date={shiftDate(date, 1)}
+              summaries={nextSummaries}
+            />
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

@@ -2,7 +2,15 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, Pencil, Sparkles, Trash2, X } from "lucide-react";
+import {
+  CalendarDays,
+  Check,
+  Loader2,
+  Pencil,
+  Sparkles,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,6 +68,38 @@ function MemoPreviewList({ memos }: { memos: Memo[] | null }) {
         </div>
       ))}
     </div>
+  );
+}
+
+// 드래그 중 옆에 살짝 보이는 이전·다음 날 카드. 헤더까지 포함해 카드 전체를
+// 통째로 그린다 — 헤더는 고정해두고 목록만 옮기면, 옮겨지는 영역과 고정된
+// 헤더 사이 경계에서 메모 박스가 잘리거나 다음 카드가 겹쳐 보이는 문제가 있었다.
+// 카드 하나를 그대로 복제해 통째로 슬라이드시키면 그 경계 자체가 없어진다.
+function DayCardPreview({
+  date,
+  memos,
+}: {
+  date: string;
+  memos: Memo[] | null;
+}) {
+  return (
+    <Card className="h-full min-h-0">
+      <CardHeader className="shrink-0">
+        <Button variant="secondary" size="sm" disabled className="w-fit">
+          <CalendarDays className="size-4" />
+          {date}
+        </Button>
+        <CardAction>
+          <Button variant="secondary" size="sm" disabled>
+            <Sparkles className="size-4" />
+            요약
+          </Button>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="min-h-0 flex-1 overflow-hidden">
+        <MemoPreviewList memos={memos} />
+      </CardContent>
+    </Card>
   );
 }
 
@@ -228,138 +268,142 @@ export default function MemoTimeline({
     // 메모가 몇 개든 입력창 위치가 움직이지 않게 하기 위한 구조다.
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       {navigating && <NavOverlay />}
-      <Card className="min-h-0 flex-1">
-        <CardHeader className="shrink-0">
-          <DatePicker date={date} onSelect={goToDate} />
-          <CardAction>
-            {/* 시트를 열기만 한다. 요약 생성은 시트 안의 "요약하기" 버튼으로만 시작된다 —
-                요약은 API 호출이고 quota를 소모하므로 명시적인 의도로만 발생해야 한다. */}
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={selectedIds.size === 0}
-              onClick={() => setSummaryOpen(true)}
-            >
-              <Sparkles className="size-4" />
-              {selectedIds.size === memos.length
-                ? "요약"
-                : `요약 (${selectedIds.size})`}
-            </Button>
-          </CardAction>
-        </CardHeader>
-        <CardContent
-          ref={containerRef}
-          className="min-h-0 flex-1 overflow-hidden"
-          {...handlers}
+      {/* 헤더까지 포함해 카드 전체가 드래그 대상이다. 목록만 옮기고 헤더는
+          고정해두면 그 경계에서 메모 박스가 잘려 보이는 문제가 있었다. */}
+      <div
+        ref={containerRef}
+        className="min-h-0 flex-1 overflow-hidden"
+        {...handlers}
+      >
+        {/* 이전·오늘·다음 세 날짜의 카드를 나란히 두고 손가락 이동량만큼 통째로 옮긴다.
+            기본 위치(offset 0)는 가운데(오늘) 카드가 꽉 채워 보이는 지점이다. */}
+        <div
+          className="flex h-full"
+          style={{
+            // 측정 전(마운트 첫 프레임) 잠깐은 퍼센트로 대략 맞춰두고, 측정되는
+            // 즉시(useLayoutEffect라 페인트 전에 끝난다) 픽셀 값으로 넘어간다.
+            width: panelWidth ? panelWidth * 3 : "300%",
+            transform: panelWidth
+              ? `translateX(${-panelWidth + offset}px)`
+              : "translateX(calc(-100% / 3))",
+            transition: dragging ? "none" : "transform 200ms ease-out",
+          }}
         >
-          {/* 이전·오늘·다음 세 날짜를 나란히 두고 손가락 이동량만큼 통째로 옮긴다.
-              기본 위치(offset 0)는 가운데(오늘) 패널이 꽉 채워 보이는 지점이다. */}
           <div
-            className="flex h-full"
-            style={{
-              // 측정 전(마운트 첫 프레임) 잠깐은 퍼센트로 대략 맞춰두고, 측정되는
-              // 즉시(useLayoutEffect라 페인트 전에 끝난다) 픽셀 값으로 넘어간다.
-              width: panelWidth ? panelWidth * 3 : "300%",
-              transform: panelWidth
-                ? `translateX(${-panelWidth + offset}px)`
-                : "translateX(calc(-100% / 3))",
-              transition: dragging ? "none" : "transform 200ms ease-out",
-            }}
+            style={{ width: panelWidth || "33.3333%" }}
+            className="h-full shrink-0 pr-2"
           >
-            <div
-              style={{ width: panelWidth || "33.3333%" }}
-              className="h-full shrink-0 pr-2"
-            >
-              <MemoPreviewList memos={prevMemos} />
-            </div>
-
-            <div
-              style={{ width: panelWidth || "33.3333%" }}
-              className="h-full shrink-0 px-2"
-            >
-              {/* 메모가 쌓여도 이 영역의 크기는 그대로고 안에서만 스크롤된다.
-                  스크롤바는 숨긴다 — 카드의 둥근 모서리에 걸려 잘려 보이는 게 더 거슬린다. */}
-              <div className="flex h-full flex-col gap-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {memos.length === 0 && (
-                  <p className="text-sm text-muted-foreground">아직 메모가 없어요.</p>
-                )}
-
-                {memos.map((memo) => (
-                  <div
-                    key={memo.id}
-                    className="flex items-center gap-2 rounded-md border px-3 py-2"
-                  >
-                    {/* 편집 중에도 선택 상태는 그대로 보인다 — 요약 포함 여부는
-                        내용 수정과 독립적인 판단이므로 자리를 바꾸지 않는다. */}
-                    <Checkbox
-                      checked={selectedIds.has(memo.id)}
-                      onCheckedChange={(checked) => toggleMemo(memo.id, checked)}
-                      aria-label="요약에 포함"
-                    />
-                    {editingId === memo.id ? (
-                      <>
-                        <Textarea
-                          value={editingText}
-                          onChange={(e) => setEditingText(e.target.value)}
-                          className="min-h-9 flex-1 resize-none"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label="저장"
-                          onClick={() => saveEdit(memo.id)}
-                        >
-                          <Check className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label="취소"
-                          onClick={() => setEditingId(null)}
-                        >
-                          <X className="size-4" />
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="flex-1 text-sm whitespace-pre-wrap">
-                          {memo.text}
-                        </span>
-                        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                          {timeOf(memo.createdAt)}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label="수정"
-                          onClick={() => startEdit(memo)}
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label="삭제"
-                          onClick={() => deleteMemo(memo.id)}
-                        >
-                          <Trash2 className="size-4 text-destructive" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div
-              style={{ width: panelWidth || "33.3333%" }}
-              className="h-full shrink-0 pl-2"
-            >
-              <MemoPreviewList memos={nextMemos} />
-            </div>
+            <DayCardPreview date={shiftDate(date, -1)} memos={prevMemos} />
           </div>
-        </CardContent>
-      </Card>
+
+          <div
+            style={{ width: panelWidth || "33.3333%" }}
+            className="h-full shrink-0 px-2"
+          >
+            <Card className="h-full min-h-0">
+              <CardHeader className="shrink-0">
+                <DatePicker date={date} onSelect={goToDate} />
+                <CardAction>
+                  {/* 시트를 열기만 한다. 요약 생성은 시트 안의 "요약하기" 버튼으로만 시작된다 —
+                      요약은 API 호출이고 quota를 소모하므로 명시적인 의도로만 발생해야 한다. */}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={selectedIds.size === 0}
+                    onClick={() => setSummaryOpen(true)}
+                  >
+                    <Sparkles className="size-4" />
+                    {selectedIds.size === memos.length
+                      ? "요약"
+                      : `요약 (${selectedIds.size})`}
+                  </Button>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="min-h-0 flex-1 overflow-hidden">
+                {/* 메모가 쌓여도 이 영역의 크기는 그대로고 안에서만 스크롤된다.
+                    스크롤바는 숨긴다 — 카드의 둥근 모서리에 걸려 잘려 보이는 게 더 거슬린다. */}
+                <div className="flex h-full flex-col gap-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {memos.length === 0 && (
+                    <p className="text-sm text-muted-foreground">아직 메모가 없어요.</p>
+                  )}
+
+                  {memos.map((memo) => (
+                    <div
+                      key={memo.id}
+                      className="flex items-center gap-2 rounded-md border px-3 py-2"
+                    >
+                      {/* 편집 중에도 선택 상태는 그대로 보인다 — 요약 포함 여부는
+                          내용 수정과 독립적인 판단이므로 자리를 바꾸지 않는다. */}
+                      <Checkbox
+                        checked={selectedIds.has(memo.id)}
+                        onCheckedChange={(checked) => toggleMemo(memo.id, checked)}
+                        aria-label="요약에 포함"
+                      />
+                      {editingId === memo.id ? (
+                        <>
+                          <Textarea
+                            value={editingText}
+                            onChange={(e) => setEditingText(e.target.value)}
+                            className="min-h-9 flex-1 resize-none"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="저장"
+                            onClick={() => saveEdit(memo.id)}
+                          >
+                            <Check className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="취소"
+                            onClick={() => setEditingId(null)}
+                          >
+                            <X className="size-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="flex-1 text-sm whitespace-pre-wrap">
+                            {memo.text}
+                          </span>
+                          <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                            {timeOf(memo.createdAt)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="수정"
+                            onClick={() => startEdit(memo)}
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="삭제"
+                            onClick={() => deleteMemo(memo.id)}
+                          >
+                            <Trash2 className="size-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div
+            style={{ width: panelWidth || "33.3333%" }}
+            className="h-full shrink-0 pl-2"
+          >
+            <DayCardPreview date={shiftDate(date, 1)} memos={nextMemos} />
+          </div>
+        </div>
+      </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
