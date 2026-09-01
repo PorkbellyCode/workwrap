@@ -13,6 +13,9 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { streamSummary } from "@/lib/summary-stream";
+import { cn } from "@/lib/utils";
+import { shiftDate } from "@/lib/date";
+import { useSwipe } from "@/lib/use-swipe";
 import RecordButton from "./record-button";
 import NavOverlay from "@/components/nav-overlay";
 import DatePicker from "./date-picker";
@@ -161,12 +164,32 @@ export default function MemoTimeline({
     });
   }
 
+  // 스와이프로 날짜를 옮길 때는 방향을 잠깐 보여주고 나서 이동한다.
+  // 바로 이동하면 응답이 빠를 때 카드가 애니메이션 없이 그냥 바뀌어 버린다.
+  const [exiting, setExiting] = useState<"left" | "right" | null>(null);
+  const swipeHandlers = useSwipe((direction) => {
+    setExiting(direction);
+    setTimeout(() => {
+      goToDate(shiftDate(date, direction === "left" ? 1 : -1));
+    }, 150);
+  });
+
   return (
     // 남는 높이를 전부 차지하고, 그 안에서 카드가 늘어난다.
     // 메모가 몇 개든 입력창 위치가 움직이지 않게 하기 위한 구조다.
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       {navigating && <NavOverlay />}
-      <Card className="min-h-0 flex-1">
+      <Card
+        className={cn(
+          "min-h-0 flex-1",
+          exiting === "left" &&
+            "animate-out fade-out slide-out-to-left duration-150",
+          exiting === "right" &&
+            "animate-out fade-out slide-out-to-right duration-150",
+          !exiting && "animate-in fade-in duration-200"
+        )}
+        {...swipeHandlers}
+      >
         <CardHeader className="shrink-0">
           <DatePicker date={date} onSelect={goToDate} />
           <CardAction>

@@ -23,3 +23,14 @@ export function dayRangeSeoul(dateStr: string) {
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   return { start, end };
 }
+
+// 스와이프로 날짜를 옮길 때 쓴다. "YYYY-MM-DD"를 로컬 시간대 안에서만 다뤄
+// new Date(dateStr) 파싱(UTC 자정 해석) 문제를 피한다.
+export function shiftDate(dateStr: string, days: number) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const shifted = new Date(year, month - 1, day + days);
+  const yyyy = shifted.getFullYear();
+  const mm = String(shifted.getMonth() + 1).padStart(2, "0");
+  const dd = String(shifted.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}

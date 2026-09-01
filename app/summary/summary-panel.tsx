@@ -11,6 +11,9 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { streamSummary } from "@/lib/summary-stream";
+import { cn } from "@/lib/utils";
+import { shiftDate } from "@/lib/date";
+import { useSwipe } from "@/lib/use-swipe";
 import NavOverlay from "@/components/nav-overlay";
 import SummaryActions from "@/components/summary-actions";
 import SummaryMarkdown from "@/components/summary-markdown";
@@ -55,6 +58,15 @@ export default function SummaryPanel({
       router.push(`/summary?date=${next}&category=${categoryId}`);
     });
   }
+
+  // 스와이프 이동도 대시보드와 같은 방식 — 방향을 잠깐 보여준 뒤 이동한다.
+  const [exiting, setExiting] = useState<"left" | "right" | null>(null);
+  const swipeHandlers = useSwipe((direction) => {
+    setExiting(direction);
+    setTimeout(() => {
+      goToDate(shiftDate(date, direction === "left" ? 1 : -1));
+    }, 150);
+  });
 
   // 이 화면은 버전 히스토리다. 기간의 메모 전체로 다시 요약한다 —
   // 메모를 골라 요약하는 일은 대시보드의 바텀시트가 맡는다.
@@ -123,7 +135,16 @@ export default function SummaryPanel({
   }
 
   return (
-    <Card>
+    <Card
+      className={cn(
+        exiting === "left" &&
+          "animate-out fade-out slide-out-to-left duration-150",
+        exiting === "right" &&
+          "animate-out fade-out slide-out-to-right duration-150",
+        !exiting && "animate-in fade-in duration-200"
+      )}
+      {...swipeHandlers}
+    >
       {navigating && <NavOverlay />}
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
