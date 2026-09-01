@@ -77,7 +77,7 @@ function SummaryCardPreview({
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="min-h-0 flex-1 overflow-y-auto">
+      <CardContent className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <SummaryPreview summaries={summaries} />
       </CardContent>
     </Card>
@@ -269,7 +269,7 @@ export default function SummaryPanel({
                 </div>
               </CardHeader>
 
-              <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+              <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {/* 버전이 하나뿐이어도 이 줄을 띄운다 — 삭제 버튼이 여기 붙기 때문이다.
                     칩마다 ×를 달지는 않는다. 모바일엔 hover가 없어 ×가 항상 떠 있게 되고
                     칩의 터치 타겟이 좁아진다(카테고리 탭에서 같은 이유로 폐기한 안).

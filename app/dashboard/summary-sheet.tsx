@@ -54,8 +54,8 @@ export default function SummarySheet({
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* 기본 중앙 배치를 쓰되, 체크리스트와 요약이 들어가므로 폭만 넓힌다.
           내용이 길어져도 화면을 넘지 않게 상한을 둔다. */}
-      <DialogContent className="max-h-[85dvh] gap-3 sm:max-w-xl">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[85dvh] flex-col gap-3 overflow-hidden sm:max-w-2xl">
+        <DialogHeader className="shrink-0">
           <DialogTitle>{date} 요약</DialogTitle>
           <DialogDescription>
             체크한 메모만 요약에 담깁니다
@@ -64,20 +64,21 @@ export default function SummarySheet({
         </DialogHeader>
 
         {/* 포함 메모 체크리스트. 생성 중에는 바뀌어도 반영되지 않으니 잠근다. */}
-        <div className="flex max-h-40 min-h-9 flex-col gap-1.5 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex max-h-56 min-h-9 shrink-0 flex-col gap-1.5 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {memos.length === 0 && (
             <p className="text-sm text-muted-foreground">이 날 메모가 없어요.</p>
           )}
           {memos.map((memo) => (
             <label
               key={memo.id}
-              className="flex items-center gap-2 rounded-md border px-3 py-2"
+              className="flex items-start gap-2 rounded-md border px-3 py-2"
             >
               <Checkbox
                 checked={selectedIds.has(memo.id)}
                 onCheckedChange={(checked) => onToggleMemo(memo.id, checked)}
                 disabled={streaming}
                 aria-label="요약에 포함"
+                className="mt-0.5"
               />
               <span className="flex-1 text-sm whitespace-pre-wrap">
                 {memo.text}
@@ -117,7 +118,7 @@ export default function SummarySheet({
           </Link>
         )}
 
-        <DialogFooter className="flex-row items-center justify-between">
+        <DialogFooter className="shrink-0 flex-row items-center justify-between">
           <div className="flex items-center gap-1">
             <Link
               href={`/summary?date=${date}&category=${categoryId}`}

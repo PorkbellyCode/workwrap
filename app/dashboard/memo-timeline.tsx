@@ -330,14 +330,17 @@ export default function MemoTimeline({
                   {memos.map((memo) => (
                     <div
                       key={memo.id}
-                      className="flex items-center gap-2 rounded-md border px-3 py-2"
+                      className="flex items-start gap-2 rounded-md border px-3 py-2"
                     >
                       {/* 편집 중에도 선택 상태는 그대로 보인다 — 요약 포함 여부는
-                          내용 수정과 독립적인 판단이므로 자리를 바꾸지 않는다. */}
+                          내용 수정과 독립적인 판단이므로 자리를 바꾸지 않는다.
+                          items-start: 긴 메모일수록 체크박스가 텍스트 덩어리 한가운데
+                          떠 보이던 문제 — 첫 줄 높이에 고정해 항상 같은 자리에 있게 한다. */}
                       <Checkbox
                         checked={selectedIds.has(memo.id)}
                         onCheckedChange={(checked) => toggleMemo(memo.id, checked)}
                         aria-label="요약에 포함"
+                        className="mt-0.5"
                       />
                       {editingId === memo.id ? (
                         <>
