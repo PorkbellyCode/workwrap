@@ -298,7 +298,7 @@ export default function MemoTimeline({
 
           <div
             style={{ width: panelWidth || "33.3333%" }}
-            className="h-full shrink-0 px-2"
+            className="h-full shrink-0"
           >
             <Card className="h-full min-h-0">
               <CardHeader className="shrink-0">

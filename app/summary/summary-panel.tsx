@@ -240,7 +240,7 @@ export default function SummaryPanel({
 
           <div
             style={{ width: panelWidth || "33.3333%" }}
-            className="max-h-[60vh] shrink-0 px-2"
+            className="max-h-[60vh] shrink-0"
           >
             <Card className="h-full min-h-0">
               <CardHeader>
