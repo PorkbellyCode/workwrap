@@ -1,9 +1,9 @@
 import {
-  boolean,
   date,
   index,
   integer,
   jsonb,
+  pgEnum,
   pgTable,
   primaryKey,
   text,
@@ -14,9 +14,14 @@ import { createId } from "@/lib/id";
 // --- NextAuth(Auth.js) DrizzleAdapter 필수 테이블 ---
 // Google OAuth로 로그인하며, @auth/drizzle-adapter의 타입 시그니처가
 // usersTable/accountsTable을 요구해 표준 형태를 그대로 따르되 users에는
-// 프로젝트 전용 컬럼(approved, requestedAt, createdAt)을 추가했다.
-// 가입은 별도 절차 없이 첫 로그인 시 자동 생성되고(approved 기본값 false),
-// 관리자가 /admin에서 승인해야 대시보드를 사용할 수 있다.
+// 프로젝트 전용 컬럼(status, requestedAt, createdAt)을 추가했다.
+// 가입은 별도 절차 없이 첫 로그인 시 자동 생성되고(status 기본값 'pending'),
+// 관리자가 /admin에서 'active'로 바꿔야 대시보드를 사용할 수 있다. 승인된
+// 사용자를 다시 'suspended'로 돌려 이용을 중지시킬 수도 있다.
+
+export const userStatusValues = ["pending", "active", "suspended"] as const;
+export type UserStatus = (typeof userStatusValues)[number];
+export const userStatusEnum = pgEnum("user_status", userStatusValues);
 
 export const users = pgTable("user", {
   id: text("id")
@@ -26,7 +31,7 @@ export const users = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
-  approved: boolean("approved").notNull().default(false),
+  status: userStatusEnum("status").notNull().default("pending"),
   // 요약 프롬프트에 붙는 사용자 전역 배경(직무, 팀, 자주 쓰는 약어 등).
   // 길이 상한(MAX_CONTEXT_LENGTH)은 서버에서 검증한다 — varchar로 박으면
   // 숫자를 바꿀 때마다 마이그레이션이 필요해진다.

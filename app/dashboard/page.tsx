@@ -27,12 +27,12 @@ export default async function DashboardPage({
   const userId = session.user.id;
 
   const [me] = await db
-    .select({ approved: users.approved, context: users.context })
+    .select({ status: users.status, context: users.context })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
 
-  if (!me?.approved) {
+  if (me?.status !== "active") {
     redirect("/pending");
   }
 

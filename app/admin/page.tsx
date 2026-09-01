@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
-import { and, asc, count, desc, eq, gte, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { categories, memos, summaries, users } from "@/lib/db/schema";
+import { categories, memos, summaries, users, type UserStatus } from "@/lib/db/schema";
 import { DEFAULT_CATEGORY_NAME } from "@/lib/category";
 import { todaySeoul } from "@/lib/date";
 import TopNav from "@/components/top-nav";
@@ -87,7 +87,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
       .select({
         id: users.id,
         email: users.email,
-        approved: users.approved,
+        status: users.status,
         requestedAt: users.requestedAt,
         createdAt: users.createdAt,
         // sql 템플릿을 select 목록에 쓰면 drizzle이 컬럼의 테이블 접두어를 떼어내
@@ -97,7 +97,10 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         summaryCount: db.$count(summaries, eq(summaries.userId, users.id)),
       })
       .from(users)
-      .orderBy(asc(users.approved), desc(users.createdAt)),
+      .orderBy(
+        sql`case when ${users.status} = 'pending' then 0 else 1 end`,
+        desc(users.createdAt)
+      ),
   ]);
 
   const memoByDay = new Map(memoDaily.map((row) => [row.day, row.total]));
@@ -118,7 +121,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     memos: scoped.reduce((sum, u) => sum + u.memoCount, 0),
     summaries: scoped.reduce((sum, u) => sum + u.summaryCount, 0),
   };
-  const pendingCount = perUser.filter((u) => !u.approved).length;
+  const pendingCount = perUser.filter((u) => u.status === "pending").length;
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:px-6">
@@ -183,34 +186,42 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                       {user.summaryCount}
                     </TableCell>
                     <TableCell className="text-right">
-                      {user.approved ? (
-                        <span className="text-muted-foreground">승인됨</span>
-                      ) : (
-                        <form
-                          action={async () => {
-                            "use server";
-                            const current = await auth();
-                            if (
-                              current?.user?.email !== process.env.ADMIN_EMAIL
-                            ) {
-                              return;
-                            }
-                            await db
-                              .update(users)
-                              .set({ approved: true })
-                              .where(eq(users.id, user.id));
-                            // memo.category_id가 NOT NULL이라 카테고리가 없으면
-                            // 대시보드에서 메모를 아예 쓸 수 없다. 승인 시점에
-                            // 기본 카테고리를 만들어 빈 상태 자체를 없앤다.
-                            await ensureDefaultCategory(user.id);
-                            refresh();
-                          }}
-                        >
-                          <Button type="submit" size="sm">
-                            승인
-                          </Button>
-                        </form>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="text-muted-foreground">
+                          {STATUS_LABEL[user.status]}
+                        </span>
+                        {user.status === "pending" && (
+                          <form
+                            action={setUserStatus.bind(null, user.id, "active")}
+                          >
+                            <Button type="submit" size="sm">
+                              승인
+                            </Button>
+                          </form>
+                        )}
+                        {user.status === "active" && (
+                          <form
+                            action={setUserStatus.bind(
+                              null,
+                              user.id,
+                              "suspended"
+                            )}
+                          >
+                            <Button type="submit" size="sm" variant="outline">
+                              중지
+                            </Button>
+                          </form>
+                        )}
+                        {user.status === "suspended" && (
+                          <form
+                            action={setUserStatus.bind(null, user.id, "active")}
+                          >
+                            <Button type="submit" size="sm">
+                              재승인
+                            </Button>
+                          </form>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -236,6 +247,28 @@ async function ensureDefaultCategory(userId: string) {
     .insert(categories)
     .values({ userId, name: DEFAULT_CATEGORY_NAME });
 }
+
+async function setUserStatus(userId: string, status: UserStatus) {
+  "use server";
+  const current = await auth();
+  if (current?.user?.email !== process.env.ADMIN_EMAIL) {
+    return;
+  }
+  await db.update(users).set({ status }).where(eq(users.id, userId));
+  if (status === "active") {
+    // memo.category_id가 NOT NULL이라 카테고리가 없으면 대시보드에서
+    // 메모를 아예 쓸 수 없다. 승인·재승인 시점에 기본 카테고리를 만들어
+    // 빈 상태 자체를 없앤다(이미 있으면 ensureDefaultCategory가 건너뛴다).
+    await ensureDefaultCategory(userId);
+  }
+  refresh();
+}
+
+const STATUS_LABEL: Record<UserStatus, string> = {
+  pending: "미승인",
+  active: "사용가능",
+  suspended: "중지",
+};
 
 function StatTile({ label, value }: { label: string; value: number }) {
   return (

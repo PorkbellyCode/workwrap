@@ -57,6 +57,20 @@
       "when": 1787984844240,
       "tag": "0007_silly_lionheart",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788228969531,
+      "tag": "0008_add_user_status_column",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788228987480,
+      "tag": "0009_drop_user_approved_column",
+      "breakpoints": true
     }
   ]
 }

@@ -21,12 +21,12 @@ export default async function PendingPage() {
   }
 
   const [me] = await db
-    .select({ approved: users.approved, requestedAt: users.requestedAt })
+    .select({ status: users.status, requestedAt: users.requestedAt })
     .from(users)
     .where(eq(users.id, session.user.id))
     .limit(1);
 
-  if (me?.approved) {
+  if (me?.status === "active") {
     redirect("/dashboard");
   }
 
@@ -48,14 +48,19 @@ export default async function PendingPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>승인 대기 중이에요</CardTitle>
+          <CardTitle>
+            {me?.status === "suspended"
+              ? "이용이 중지됐어요"
+              : "승인 대기 중이에요"}
+          </CardTitle>
           <CardDescription>
-            {session.user.email}로 로그인했어요. 이용하려면 관리자 승인이
-            필요해요.
+            {me?.status === "suspended"
+              ? `${session.user.email} 계정은 현재 이용이 중지됐어요. 문의가 필요하면 관리자에게 연락해주세요.`
+              : `${session.user.email}로 로그인했어요. 이용하려면 관리자 승인이 필요해요.`}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {me?.requestedAt ? (
+          {me?.status === "suspended" ? null : me?.requestedAt ? (
             <p className="text-sm text-muted-foreground">
               이용 신청을 보냈어요. 승인되면 이용하실 수 있어요.
             </p>
