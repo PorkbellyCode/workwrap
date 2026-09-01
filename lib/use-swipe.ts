@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type TouchEvent } from "react";
+import { useLayoutEffect, useRef, useState, type TouchEvent } from "react";
 
 // 손가락 이동에 맞춰 카드를 실시간으로 옮기다가, 놓는 순간 넘길지 되돌아갈지 정한다.
 //
@@ -20,8 +20,21 @@ export function useSwipeDrag(onCommit: (direction: "left" | "right") => void) {
   const axis = useRef<"x" | "y" | null>(null);
   const last = useRef<{ x: number; t: number } | null>(null);
 
+  // 세 패널의 폭과 기준 이동 거리를 전부 이 값(px) 하나로 계산한다. width를
+  // 퍼센트로, transform 기준점을 calc(-100%/3)처럼 다른 식으로 잡으면 반올림이
+  // 어긋나 옆 패널이 한두 픽셀 비쳐 보인다 — 그래서 픽셀 하나로 통일한다.
+  const [panelWidth, setPanelWidth] = useState(0);
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      setPanelWidth(containerRef.current?.getBoundingClientRect().width ?? 0);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
 
   function onTouchStart(e: TouchEvent) {
     const touch = e.touches[0];
@@ -63,19 +76,18 @@ export function useSwipeDrag(onCommit: (direction: "left" | "right") => void) {
     }
     axis.current = null;
 
-    const width = containerRef.current?.getBoundingClientRect().width ?? 0;
     const end = last.current ?? { x: start.x, t: start.t };
     const dx = end.x - start.x;
     const velocity = Math.abs(dx) / Math.max(end.t - start.t, 1);
 
     const shouldCommit =
-      width > 0 &&
-      (Math.abs(dx) > width * COMMIT_RATIO ||
+      panelWidth > 0 &&
+      (Math.abs(dx) > panelWidth * COMMIT_RATIO ||
         (Math.abs(dx) > FLICK_MIN_PX && velocity > FLICK_VELOCITY_PX_MS));
 
     if (shouldCommit) {
       const direction = dx < 0 ? "left" : "right";
-      setOffset(direction === "left" ? -width : width);
+      setOffset(direction === "left" ? -panelWidth : panelWidth);
       onCommit(direction);
     } else {
       setOffset(0);
@@ -84,6 +96,7 @@ export function useSwipeDrag(onCommit: (direction: "left" | "right") => void) {
 
   return {
     containerRef,
+    panelWidth,
     offset,
     dragging,
     handlers: { onTouchStart, onTouchMove, onTouchEnd },

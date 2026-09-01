@@ -218,11 +218,10 @@ export default function MemoTimeline({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { containerRef, offset, dragging, handlers } = useSwipeDrag(
-    (direction) => {
+  const { containerRef, panelWidth, offset, dragging, handlers } =
+    useSwipeDrag((direction) => {
       goToDate(shiftDate(date, direction === "left" ? 1 : -1));
-    }
-  );
+    });
 
   return (
     // 남는 높이를 전부 차지하고, 그 안에서 카드가 늘어난다.
@@ -258,20 +257,24 @@ export default function MemoTimeline({
           <div
             className="flex h-full"
             style={{
-              width: "300%",
-              transform: `translateX(calc(-100% / 3 + ${offset}px))`,
+              // 측정 전(마운트 첫 프레임) 잠깐은 퍼센트로 대략 맞춰두고, 측정되는
+              // 즉시(useLayoutEffect라 페인트 전에 끝난다) 픽셀 값으로 넘어간다.
+              width: panelWidth ? panelWidth * 3 : "300%",
+              transform: panelWidth
+                ? `translateX(${-panelWidth + offset}px)`
+                : "translateX(calc(-100% / 3))",
               transition: dragging ? "none" : "transform 200ms ease-out",
             }}
           >
             <div
-              style={{ width: `${100 / 3}%` }}
+              style={{ width: panelWidth || "33.3333%" }}
               className="h-full shrink-0 pr-2"
             >
               <MemoPreviewList memos={prevMemos} />
             </div>
 
             <div
-              style={{ width: `${100 / 3}%` }}
+              style={{ width: panelWidth || "33.3333%" }}
               className="h-full shrink-0 px-2"
             >
               {/* 메모가 쌓여도 이 영역의 크기는 그대로고 안에서만 스크롤된다.
@@ -349,7 +352,7 @@ export default function MemoTimeline({
             </div>
 
             <div
-              style={{ width: `${100 / 3}%` }}
+              style={{ width: panelWidth || "33.3333%" }}
               className="h-full shrink-0 pl-2"
             >
               <MemoPreviewList memos={nextMemos} />

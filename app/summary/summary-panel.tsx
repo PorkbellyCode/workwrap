@@ -105,11 +105,10 @@ export default function SummaryPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { containerRef, offset, dragging, handlers } = useSwipeDrag(
-    (direction) => {
+  const { containerRef, panelWidth, offset, dragging, handlers } =
+    useSwipeDrag((direction) => {
       goToDate(shiftDate(date, direction === "left" ? 1 : -1));
-    }
-  );
+    });
 
   // 이 화면은 버전 히스토리다. 기간의 메모 전체로 다시 요약한다 —
   // 메모를 골라 요약하는 일은 대시보드의 바텀시트가 맡는다.
@@ -216,20 +215,22 @@ export default function SummaryPanel({
         <div
           className="flex"
           style={{
-            width: "300%",
-            transform: `translateX(calc(-100% / 3 + ${offset}px))`,
+            width: panelWidth ? panelWidth * 3 : "300%",
+            transform: panelWidth
+              ? `translateX(${-panelWidth + offset}px)`
+              : "translateX(calc(-100% / 3))",
             transition: dragging ? "none" : "transform 200ms ease-out",
           }}
         >
           <div
-            style={{ width: `${100 / 3}%` }}
+            style={{ width: panelWidth || "33.3333%" }}
             className="max-h-[60vh] shrink-0 overflow-y-auto px-(--card-spacing) pr-2"
           >
             <SummaryPreview summaries={prevSummaries} />
           </div>
 
           <CardContent
-            style={{ width: `${100 / 3}%` }}
+            style={{ width: panelWidth || "33.3333%" }}
             className="flex max-h-[60vh] shrink-0 flex-col gap-4 overflow-y-auto"
           >
             {/* 버전이 하나뿐이어도 이 줄을 띄운다 — 삭제 버튼이 여기 붙기 때문이다.
@@ -317,7 +318,7 @@ export default function SummaryPanel({
           </CardContent>
 
           <div
-            style={{ width: `${100 / 3}%` }}
+            style={{ width: panelWidth || "33.3333%" }}
             className="max-h-[60vh] shrink-0 overflow-y-auto px-(--card-spacing) pl-2"
           >
             <SummaryPreview summaries={nextSummaries} />
