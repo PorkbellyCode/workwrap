@@ -92,16 +92,21 @@ export default async function SummaryPage({
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 px-6 py-6">
-      <TopNav current="summary" />
+      {/* 요약이 길어지면 이 페이지 자체가 스크롤된다 — 그때도 상단 메뉴·카테고리
+          탭은 손 닿는 곳에 있어야 한다. sticky + bg-background로 고정하고,
+          뒤에서 스크롤되는 내용이 비쳐 보이지 않게 막는다. */}
+      <div className="sticky top-0 z-10 flex flex-col gap-4 border-b bg-background pb-3">
+        <TopNav current="summary" />
 
-      {/* 탑메뉴로 바로 들어오면 첫 카테고리에 떨어지므로, 여기서도 탭으로
-          카테고리를 옮겨 볼 수 있어야 히스토리를 찾을 수 있다. */}
-      <CategoryTabs
-        categories={categories}
-        selectedId={selectedCategoryId}
-        date={date}
-        basePath="/summary"
-      />
+        {/* 탑메뉴로 바로 들어오면 첫 카테고리에 떨어지므로, 여기서도 탭으로
+            카테고리를 옮겨 볼 수 있어야 히스토리를 찾을 수 있다. */}
+        <CategoryTabs
+          categories={categories}
+          selectedId={selectedCategoryId}
+          date={date}
+          basePath="/summary"
+        />
+      </div>
 
       <SummaryView
         date={date}

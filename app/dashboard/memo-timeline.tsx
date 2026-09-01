@@ -11,6 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,6 +35,15 @@ function timeOf(createdAt: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+// 이 길이를 넘거나 줄바꿈이 잦으면 4줄로 접어두고 "더보기"를 띄운다. DOM을 재서
+// 실제 넘침 여부를 판정하는 대신 쓴 근사치다 — 음성 메모는 원래 짧고, 이 판정이
+// 틀려도 최악의 경우 "더보기"가 불필요하게 뜨는 정도라 감수할 만하다.
+const MEMO_COLLAPSE_THRESHOLD = 200;
+
+function isLongMemo(text: string) {
+  return text.length > MEMO_COLLAPSE_THRESHOLD || text.split("\n").length > 4;
 }
 
 async function fetchMemos(date: string, categoryId: string): Promise<Memo[]> {
@@ -124,6 +134,8 @@ export default function MemoTimeline({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(initialMemos.map((memo) => memo.id))
   );
+  // 긴 메모를 펼쳐서 보고 있는 메모 id. 접힌 상태가 기본이다.
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [text, setText] = useState("");
   const [pending, setPending] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -144,6 +156,18 @@ export default function MemoTimeline({
         next.add(id);
       } else {
         next.delete(id);
+      }
+      return next;
+    });
+  }
+
+  function toggleExpanded(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
       }
       return next;
     });
@@ -330,68 +354,102 @@ export default function MemoTimeline({
                   {memos.map((memo) => (
                     <div
                       key={memo.id}
-                      className="flex items-start gap-2 rounded-md border px-3 py-2"
+                      className="flex flex-col gap-1 rounded-md border px-3 py-2"
                     >
-                      {/* 편집 중에도 선택 상태는 그대로 보인다 — 요약 포함 여부는
-                          내용 수정과 독립적인 판단이므로 자리를 바꾸지 않는다.
-                          items-start: 긴 메모일수록 체크박스가 텍스트 덩어리 한가운데
-                          떠 보이던 문제 — 첫 줄 높이에 고정해 항상 같은 자리에 있게 한다. */}
-                      <Checkbox
-                        checked={selectedIds.has(memo.id)}
-                        onCheckedChange={(checked) => toggleMemo(memo.id, checked)}
-                        aria-label="요약에 포함"
-                        className="mt-0.5"
-                      />
-                      {editingId === memo.id ? (
-                        <>
+                      {/* 체크박스 + 본문. 시간·수정·삭제 버튼을 옆에 두면 그만큼
+                          본문 폭이 줄어 줄바꿈이 늘어난다 — 그 줄을 아래로 뺐다. */}
+                      <div className="flex items-start gap-2">
+                        <Checkbox
+                          checked={selectedIds.has(memo.id)}
+                          onCheckedChange={(checked) => toggleMemo(memo.id, checked)}
+                          aria-label="요약에 포함"
+                          className="mt-0.5"
+                        />
+                        {editingId === memo.id ? (
                           <Textarea
                             value={editingText}
                             onChange={(e) => setEditingText(e.target.value)}
                             className="min-h-9 flex-1 resize-none"
                           />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="저장"
-                            onClick={() => saveEdit(memo.id)}
-                          >
-                            <Check className="size-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="취소"
-                            onClick={() => setEditingId(null)}
-                          >
-                            <X className="size-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <span className="flex-1 text-sm whitespace-pre-wrap">
-                            {memo.text}
-                          </span>
-                          <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                            {timeOf(memo.createdAt)}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="수정"
-                            onClick={() => startEdit(memo)}
-                          >
-                            <Pencil className="size-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label="삭제"
-                            onClick={() => deleteMemo(memo.id)}
-                          >
-                            <Trash2 className="size-4 text-destructive" />
-                          </Button>
-                        </>
-                      )}
+                        ) : (
+                          <div className="relative min-w-0 flex-1">
+                            {/* 접힌 상태: 마지막 줄에 자리를 pr-10으로 미리 비워두고
+                                "더보기"를 그 자리에 겹쳐 앉힌다 — 줄바꿈해서 아래 줄에
+                                따로 두는 것보다 텍스트가 잘리는 지점 바로 옆에 있는 게
+                                자연스럽다는 판단. 배경은 bg-card로 덮어 밑에 깔린 글자가
+                                버튼 뒤로 비치지 않게 한다. */}
+                            <span
+                              className={cn(
+                                "text-sm whitespace-pre-wrap",
+                                isLongMemo(memo.text) &&
+                                  !expandedIds.has(memo.id) &&
+                                  "line-clamp-4 pr-10"
+                              )}
+                            >
+                              {memo.text}
+                            </span>
+                            {isLongMemo(memo.text) && (
+                              <button
+                                type="button"
+                                onClick={() => toggleExpanded(memo.id)}
+                                className={cn(
+                                  "text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground",
+                                  expandedIds.has(memo.id)
+                                    ? "mt-1 block"
+                                    : "absolute right-0 bottom-0 bg-card pl-1"
+                                )}
+                              >
+                                {expandedIds.has(memo.id) ? "접기" : "더보기"}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {/* 체크박스 폭(size-4) + gap(2)만큼 들여써 본문 시작 위치에 맞춘다. */}
+                      <div className="flex items-center justify-end gap-1 pl-6">
+                        {editingId === memo.id ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="저장"
+                              onClick={() => saveEdit(memo.id)}
+                            >
+                              <Check className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="취소"
+                              onClick={() => setEditingId(null)}
+                            >
+                              <X className="size-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-xs tabular-nums text-muted-foreground">
+                              {timeOf(memo.createdAt)}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="수정"
+                              onClick={() => startEdit(memo)}
+                            >
+                              <Pencil className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="삭제"
+                              onClick={() => deleteMemo(memo.id)}
+                            >
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

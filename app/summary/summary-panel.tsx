@@ -269,13 +269,16 @@ export default function SummaryPanel({
                 </div>
               </CardHeader>
 
-              <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {/* 버전 칩·삭제/복사/공유 버튼은 스크롤 대상이 아니다 — 본문을 내려서 보는
+                  동안 계속 손에 닿아 있어야 한다. min-h-0 없이는 flex-1인 아래 스크롤
+                  영역이 내용 크기만큼 그냥 자라버려 카드가 넘친다. */}
+              <CardContent className="flex min-h-0 flex-1 flex-col gap-4">
                 {/* 버전이 하나뿐이어도 이 줄을 띄운다 — 삭제 버튼이 여기 붙기 때문이다.
                     칩마다 ×를 달지는 않는다. 모바일엔 hover가 없어 ×가 항상 떠 있게 되고
                     칩의 터치 타겟이 좁아진다(카테고리 탭에서 같은 이유로 폐기한 안).
                     지울 수 있는 건 언제나 "지금 보고 있는 버전" 하나다. */}
                 {versions.length > 0 && !streaming && (
-                  <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="flex shrink-0 flex-wrap items-center gap-1.5">
                     {versions.map((v) => (
                       <Button
                         key={v.id}
@@ -328,30 +331,32 @@ export default function SummaryPanel({
                   </div>
                 )}
 
-                {error && <p className="text-sm text-destructive">{error}</p>}
+                {error && <p className="shrink-0 text-sm text-destructive">{error}</p>}
 
                 {/* 버전 번호만으로는 무엇으로 만든 요약인지 알 수 없다 — 시트는 체크한
                     메모만, 이 화면의 "다시 요약"은 그 날 전체를 쓰기 때문이다. */}
                 {selected && !streaming && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="shrink-0 text-xs text-muted-foreground">
                     메모 {selected.memoIds.length}건 기준
                   </p>
                 )}
 
-                {shown ? (
-                  <SummaryMarkdown content={shown} streaming={streaming} />
-                ) : (
-                  !streaming &&
-                  !error && (
-                    <p className="text-sm text-muted-foreground">
-                      이 날 쌓인 메모를 모아 요약을 만들어드려요.
-                    </p>
-                  )
-                )}
+                <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {shown ? (
+                    <SummaryMarkdown content={shown} streaming={streaming} />
+                  ) : (
+                    !streaming &&
+                    !error && (
+                      <p className="text-sm text-muted-foreground">
+                        이 날 쌓인 메모를 모아 요약을 만들어드려요.
+                      </p>
+                    )
+                  )}
 
-                {streaming && !streamText && (
-                  <p className="text-sm text-muted-foreground">요약을 만드는 중…</p>
-                )}
+                  {streaming && !streamText && (
+                    <p className="text-sm text-muted-foreground">요약을 만드는 중…</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>

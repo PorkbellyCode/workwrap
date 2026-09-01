@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_CONTEXT_LENGTH } from "@/lib/context";
 
@@ -13,8 +19,11 @@ import { MAX_CONTEXT_LENGTH } from "@/lib/context";
 // 폐기했다 — 시트는 이미 체크리스트와 결과로 85dvh가 차 있어, 여기에 두 개를 더
 // 얹으면 요약을 보려고 연 시트에서 요약이 화면 밖으로 밀린다.
 //
-// 접이식으로 두지 않는다. 이 화면은 카드 하나뿐이라 세로 여백이 남고,
-// 접어두면 컨텍스트의 존재 자체를 잊는다.
+// 접이식(2026-09-01 이전 결정)을 뒤집었다: 자주 쓰는 값이 아니라는 실사용
+// 피드백이 나왔고, 요약 본문이 길어지면 이 화면도 세로 공간이 남지 않는다 —
+// "카드 하나뿐이라 여백이 남는다"던 전제가 더는 성립하지 않는다. 대신 이미
+// 적어둔 게 있으면(hasContext) 기본으로 펼쳐서, 접어둔 채로 그 존재를 잊는
+// 문제는 피한다.
 export default function ContextEditor({
   userContext,
   categoryId,
@@ -33,6 +42,7 @@ export default function ContextEditor({
   const [mine, setMine] = useState(userContext);
   const [work, setWork] = useState(categoryContext);
   const [error, setError] = useState("");
+  const hasContext = Boolean(userContext.trim() || categoryContext.trim());
 
   // 카테고리 이름 편집과 같은 방식으로 blur에 저장한다. 저장 버튼을 두면
   // 안 누른 채로 요약을 돌리는 일이 생긴다.
@@ -59,31 +69,38 @@ export default function ContextEditor({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">요약에 참고할 컨텍스트</CardTitle>
-      </CardHeader>
+      <Collapsible defaultOpen={hasContext}>
+        <CardHeader>
+          <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-sm text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+            <CardTitle className="text-base">요약에 참고할 컨텍스트</CardTitle>
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform data-panel-open:rotate-180" />
+          </CollapsibleTrigger>
+        </CardHeader>
 
-      <CardContent className="flex flex-col gap-4">
-        <Field
-          label="나에 대해"
-          placeholder="나에 대해 배경지식을 작성해주세요, 요약 결과 품질 향상에 도움이 됩니다."
-          value={mine}
-          onChange={setMine}
-          onBlur={() => save("/api/me", mine, userContext)}
-        />
+        <CollapsiblePanel>
+          <CardContent className="flex flex-col gap-4">
+            <Field
+              label="나에 대해"
+              placeholder="나에 대해 배경지식을 작성해주세요, 요약 결과 품질 향상에 도움이 됩니다."
+              value={mine}
+              onChange={setMine}
+              onBlur={() => save("/api/me", mine, userContext)}
+            />
 
-        <Field
-          label={`${categoryName} 에 대해`}
-          placeholder={`${categoryName}에 대한 배경지식을 작성해주세요, 요약 결과 품질 향상에 도움이 됩니다.`}
-          value={work}
-          onChange={setWork}
-          onBlur={() =>
-            save(`/api/categories/${categoryId}`, work, categoryContext)
-          }
-        />
+            <Field
+              label={`${categoryName} 에 대해`}
+              placeholder={`${categoryName}에 대한 배경지식을 작성해주세요, 요약 결과 품질 향상에 도움이 됩니다.`}
+              value={work}
+              onChange={setWork}
+              onBlur={() =>
+                save(`/api/categories/${categoryId}`, work, categoryContext)
+              }
+            />
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
-      </CardContent>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </CardContent>
+        </CollapsiblePanel>
+      </Collapsible>
     </Card>
   );
 }
