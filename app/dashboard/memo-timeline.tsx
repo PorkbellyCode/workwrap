@@ -272,7 +272,7 @@ export default function MemoTimeline({
           고정해두면 그 경계에서 메모 박스가 잘려 보이는 문제가 있었다. */}
       <div
         ref={containerRef}
-        className="min-h-0 flex-1 overflow-hidden"
+        className="min-h-0 flex-1 overflow-x-hidden"
         {...handlers}
       >
         {/* 이전·오늘·다음 세 날짜의 카드를 나란히 두고 손가락 이동량만큼 통째로 옮긴다.

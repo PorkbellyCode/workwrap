@@ -215,7 +215,7 @@ export default function SummaryPanel({
           끝나는 순간 페이지 높이가 출렁인다. */}
       <div
         ref={containerRef}
-        className="max-h-[60vh] overflow-hidden"
+        className="max-h-[60vh] overflow-x-hidden"
         {...handlers}
       >
         <div
