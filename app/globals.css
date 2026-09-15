@@ -7,9 +7,13 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  /* 전체 UI가 mono라 sans/mono가 같은 스택을 가리킨다. */
-  --font-mono: var(--font-sans);
+  /* 웹폰트를 받지 않는다. 애플 기기는 SF Pro + Apple SD Gothic Neo, 안드로이드는 Roboto + Noto Sans CJK,
+     윈도우는 Segoe UI + 맑은 고딕으로 각 OS의 기본 UI 글꼴을 그대로 쓴다.
+     SF Pro는 라이선스상 웹폰트로 올릴 수 없어 시스템 스택으로만 부를 수 있다.
+     Pretendard는 설치된 환경에서만 잡힌다. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", Pretendard, system-ui, Roboto, "Noto Sans KR", "Segoe UI", "Malgun Gothic", sans-serif;
+  /* 모노는 요약 본문의 인라인 코드에만 쓴다. 숫자 폭 정렬은 tabular-nums로 한다. */
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -52,22 +56,27 @@
 }
 
 :root {
-  --font-sans: var(--font-jetbrains-mono), var(--font-plex-kr);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+  /* 뉴트럴은 iOS 시스템 컬러를 따른다.
+     배경(systemGroupedBackground)과 카드(secondarySystemGroupedBackground)의 명도 차이로 영역을 나눈다. */
+  --background: #f2f2f7;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #1c1c1e;
+  --primary-foreground: #ffffff;
+  /* systemGray5. 흰 카드 위에서도, 회색 배경 위에서도 구분되는 채움색. */
+  --secondary: #e5e5ea;
+  --secondary-foreground: #000000;
+  --muted: #e5e5ea;
+  /* secondaryLabel(#8a8a8e)은 흰 배경 3.4:1로 작은 글자에 AA 미달이라 한 단계 진하게 쓴다.
+     흰 배경 5.1:1, 회색 배경 4.6:1. */
+  --muted-foreground: #6c6c70;
+  --accent: #e5e5ea;
+  --accent-foreground: #000000;
+  /* systemRed(#ff3b30)는 흰 배경 글자 대비가 모자라 접근성 대비 변형을 쓴다. */
+  --destructive: #d70015;
   /* 유일한 유채색 포인트. PorkLog와 같은 오렌지를 쓴다.
      PorkLog는 브랜드 원색 #e85d2a를 두고, 흰 배경 위의 전경(글자·아이콘)에는 대비가
      모자라 #be4c22로 한 단계 죽여 쓴다. 스피너는 전경 표식이므로 그 규칙을 그대로 따랐다.
@@ -75,9 +84,9 @@
   --brand: #be4c22;
   /* 오렌지 위에 얹는 글자색. 흰 글자 대비 4.95:1로 AA를 넘긴다. */
   --brand-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: #d1d1d6;
+  --input: #d1d1d6;
+  --ring: #8e8e93;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -95,28 +104,31 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+  /* 다크는 순수한 검정 위에 카드가 떠 있는 구조(systemBackground / secondarySystemGroupedBackground). */
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #1c1c1e;
+  --card-foreground: #ffffff;
+  /* 팝오버·시트는 카드보다 한 단계 위 표면. */
+  --popover: #2c2c2e;
+  --popover-foreground: #ffffff;
+  --primary: #f2f2f7;
+  --primary-foreground: #000000;
+  --secondary: #2c2c2e;
+  --secondary-foreground: #ffffff;
+  --muted: #2c2c2e;
+  /* secondaryLabel. 카드(#1c1c1e) 위 6:1. */
+  --muted-foreground: #98989f;
+  --accent: #3a3a3c;
+  --accent-foreground: #ffffff;
+  --destructive: #ff6961;
   /* 어두운 배경에서는 죽일 이유가 없어 브랜드 원색 그대로. */
   --brand: #e85d2a;
   /* 원색 위에 흰 글자는 3.5:1로 AA에 못 미쳐 다크에서만 어두운 글자를 쓴다. */
   --brand-foreground: oklch(0.145 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --border: #38383a;
+  --input: #48484a;
+  --ring: #8e8e93;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -138,6 +150,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* 한글은 어절 단위로 줄을 바꾼다. 어절 하나가 한 줄보다 길 때(URL 등)만 글자 단위로 끊는다. */
+    word-break: keep-all;
+    overflow-wrap: anywhere;
   }
   html {
     @apply font-sans;
