@@ -27,11 +27,14 @@ function DrawerContent({
   className,
   children,
   showCloseButton = true,
+  keyboardAware = false,
   ...props
 }: DrawerPrimitive.Popup.Props & {
   showCloseButton?: boolean
+  // 입력창이 든 시트. 모바일 키보드가 올라오면 초점 맞은 칸이 가려지지 않게 스크롤을 맞춘다.
+  keyboardAware?: boolean
 }) {
-  return (
+  const portal = (
     <DrawerPrimitive.Portal>
       <DrawerPrimitive.Backdrop
         data-slot="drawer-overlay"
@@ -83,6 +86,14 @@ function DrawerContent({
         </DrawerPrimitive.Popup>
       </DrawerPrimitive.Viewport>
     </DrawerPrimitive.Portal>
+  )
+
+  return keyboardAware ? (
+    <DrawerPrimitive.VirtualKeyboardProvider>
+      {portal}
+    </DrawerPrimitive.VirtualKeyboardProvider>
+  ) : (
+    portal
   )
 }
 
