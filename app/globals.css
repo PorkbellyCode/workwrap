@@ -168,7 +168,7 @@
   }
 }
 
-/* 로그인 워드마크(components/wordmark-intro.tsx). 막대는 --peak 높이까지 두어 번 출렁이다
+/* 로그인 워드마크(components/wordmark-intro.tsx). 막대는 --peak 높이까지 세 번 출렁이다
    가라앉고, 글자는 조금 아래·흐린 상태에서 제자리로 올라온다.
    Tailwind v4의 scale 유틸리티와 맞춰 transform 대신 scale·translate 속성을 쓴다. */
 @keyframes wordmark-bar {
@@ -176,18 +176,27 @@
     opacity: 0;
     scale: 1 0.15;
   }
-  15% {
+  8% {
     opacity: 1;
   }
-  35% {
+  20% {
     scale: 1 var(--peak);
   }
-  55% {
-    scale: 1 calc(var(--peak) * 0.45);
+  32% {
+    scale: 1 calc(var(--peak) * 0.4);
   }
-  70% {
+  44% {
+    scale: 1 calc(var(--peak) * 0.9);
+  }
+  56% {
+    scale: 1 calc(var(--peak) * 0.5);
+  }
+  68% {
+    scale: 1 var(--peak);
+  }
+  80% {
     opacity: 1;
-    scale: 1 calc(var(--peak) * 0.8);
+    scale: 1 calc(var(--peak) * 0.6);
   }
   100% {
     opacity: 0;

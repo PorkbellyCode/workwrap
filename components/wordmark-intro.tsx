@@ -1,6 +1,8 @@
 // 로그인 화면의 워드마크. 열릴 때 한 번만 "말 → 글"을 보여준다:
 // 녹음 버튼과 같은 오렌지 파형이 잠깐 출렁이다 가라앉고, 그 자리에 글자가 왼쪽부터 올라온다.
-// 전체 약 1.2초, 반복하지 않는다. CSS 키프레임만 쓰므로 JS 상태도 의존성도 없다.
+// 전체 약 2초, 한 번만 재생한다. CSS 키프레임만 쓰므로 JS 상태도 의존성도 없다.
+// 10초 주기 반복을 해봤다가 뺐다 — 5초 넘게 스스로 움직이는 요소는 멈출 수단이
+// 있어야 하고(WCAG 2.2.2), 로그인 화면에서 반복할 이유도 없었다.
 // 움직임 줄이기 설정에서는 파형을 감추고 글자를 처음부터 보여준다.
 
 // 막대마다 최고 높이. 매 렌더 같은 값이어야 서버·클라이언트 마크업이 일치한다.
@@ -8,8 +10,8 @@ const PEAKS = [0.35, 0.6, 0.9, 0.55, 1, 0.7, 0.45, 0.85, 0.65, 1, 0.5, 0.8, 0.4,
 const WORK = "Work";
 const WRAP = "Wrap";
 
-// 파형이 가라앉기 시작하는 시점에 첫 글자가 올라오기 시작한다.
-const LETTER_START_MS = 450;
+// 파형이 잦아들기 시작하는 시점에 첫 글자가 올라오기 시작한다.
+const LETTER_START_MS = 1250;
 const LETTER_STEP_MS = 45;
 
 export default function WordmarkIntro() {
@@ -27,7 +29,7 @@ export default function WordmarkIntro() {
         {PEAKS.map((peak, index) => (
           <span
             key={index}
-            className="h-[1.1em] w-[3px] rounded-full bg-brand opacity-0 [animation:wordmark-bar_600ms_ease-in-out_both]"
+            className="h-[1.1em] w-[3px] rounded-full bg-brand opacity-0 [animation:wordmark-bar_1600ms_ease-in-out_both]"
             style={
               {
                 "--peak": peak,
