@@ -2,6 +2,7 @@ import { auth, signOut } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import NavLink from "@/components/nav-link";
+import TabBar from "@/components/tab-bar";
 import Link from "next/link";
 import { LogOut } from "lucide-react";
 
@@ -32,14 +33,17 @@ export default async function TopNav({
         <Link href="/dashboard" className="pr-2 text-xl font-medium">
           Work<span className="text-brand">Wrap</span>
         </Link>
-        {links.map((link) => (
-          <NavLink
-            key={link.key}
-            href={link.href}
-            label={link.label}
-            current={link.key === current}
-          />
-        ))}
+        {/* 모바일에서는 같은 링크가 하단 탭 바(TabBar)로 내려간다. */}
+        <div className="hidden items-center gap-1 sm:flex">
+          {links.map((link) => (
+            <NavLink
+              key={link.key}
+              href={link.href}
+              label={link.label}
+              current={link.key === current}
+            />
+          ))}
+        </div>
       </nav>
 
       <div className="flex items-center gap-2">
@@ -58,6 +62,7 @@ export default async function TopNav({
           </Button>
         </form>
       </div>
+      <TabBar current={current} isAdmin={isAdmin} />
     </header>
   );
 }

@@ -29,7 +29,7 @@ function formatDate(date: Date) {
 // 날짜는 카드의 큰 제목이다. "8월 30일 토요일"처럼 읽히는 형태로 쓰고, 올해가 아니면 연도를 붙인다.
 // 올해 판정은 todaySeoul()로 한다 — new Date()의 연도는 서버(UTC)와 클라이언트가
 // 연말 몇 시간 동안 달라 하이드레이션이 어긋날 수 있다.
-function dateTitle(value: string) {
+export function dateTitle(value: string) {
   const sameYear = value.slice(0, 4) === todaySeoul().slice(0, 4);
   return parseDate(value).toLocaleDateString("ko-KR", {
     ...(sameYear ? {} : { year: "numeric" }),

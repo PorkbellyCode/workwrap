@@ -168,6 +168,11 @@
   }
 }
 
+/* 모바일 하단 탭 바(49px + 홈 인디케이터 영역)에 가려지지 않도록 페이지 아래에 두는 여백. */
+@utility pb-tab-bar {
+  padding-bottom: calc(49px + env(safe-area-inset-bottom, 0px) + 1rem);
+}
+
 @utility delayed-appear {
   opacity: 0;
   animation: delayed-appear 0.01s linear 0.15s forwards;

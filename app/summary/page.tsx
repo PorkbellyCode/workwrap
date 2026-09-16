@@ -91,7 +91,7 @@ export default async function SummaryPage({
   }));
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 px-6 py-6">
+    <div className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 px-6 pt-6 pb-tab-bar sm:pb-6">
       {/* 요약이 길어지면 이 페이지 자체가 스크롤된다 — 그때도 상단 메뉴·카테고리
           탭은 손 닿는 곳에 있어야 한다. sticky + bg-background로 고정하고,
           뒤에서 스크롤되는 내용이 비쳐 보이지 않게 막는다. */}

@@ -510,17 +510,14 @@ export default function MemoTimeline({
           </Button>
         </div>
 
-        <div className="flex justify-center">
-          {/* 메인 기능이라 터치 타겟을 크게 잡는다(HIG 44pt / Material 48dp 이상). */}
-          <RecordButton
-            className="size-16 rounded-full [&_svg]:size-6"
-            onTranscript={(transcript) => {
-              setError("");
-              setText(transcript);
-            }}
-            onError={setError}
-          />
-        </div>
+        {/* 메인 기능이라 터치 타겟을 크게 잡는다(64px, HIG 44pt 이상). */}
+        <RecordButton
+          onTranscript={(transcript) => {
+            setError("");
+            setText(transcript);
+          }}
+          onError={setError}
+        />
       </form>
 
       <SummarySheet

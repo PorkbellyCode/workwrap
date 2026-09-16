@@ -5,19 +5,22 @@ import { Loader2, Sparkles } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Drawer,
+  DrawerBody,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import SummaryActions from "@/components/summary-actions";
 import SummaryMarkdown from "@/components/summary-markdown";
+import { dateTitle } from "./date-picker";
 import type { Memo } from "./types";
 
-// 대시보드 위에서 열리는 요약 바텀시트. 포함할 메모를 고르는 체크리스트와
+// 대시보드 아래에서 올라오는 요약 시트. 포함할 메모를 고르는 체크리스트와
 // 스트리밍되는 요약 결과를 한 곳에서 본다 — 화면을 옮겨 다니며 문맥을 잃지 않게.
+// 아래로 끌어내리면 닫힌다.
 export default function SummarySheet({
   open,
   onOpenChange,
@@ -51,74 +54,76 @@ export default function SummarySheet({
   const shown = streaming ? streamText : result;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* 기본 중앙 배치를 쓰되, 체크리스트와 요약이 들어가므로 폭만 넓힌다.
-          내용이 길어져도 화면을 넘지 않게 상한을 둔다. */}
-      <DialogContent className="flex max-h-[85dvh] flex-col gap-3 overflow-hidden sm:max-w-2xl">
-        <DialogHeader className="shrink-0">
-          <DialogTitle>{date} 요약</DialogTitle>
-          <DialogDescription>
-            체크한 메모만 요약에 담깁니다
-            {selectedIds.size > 0 && ` · ${selectedIds.size}개 선택됨`}
-          </DialogDescription>
-        </DialogHeader>
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle>{dateTitle(date)} 요약</DrawerTitle>
+          <DrawerDescription>
+            {selectedIds.size > 0
+              ? `체크한 메모 ${selectedIds.size}개로 요약해요`
+              : "요약에 담을 메모를 체크해주세요"}
+          </DrawerDescription>
+        </DrawerHeader>
 
-        {/* 포함 메모 체크리스트. 생성 중에는 바뀌어도 반영되지 않으니 잠근다. */}
-        <div className="flex max-h-56 min-h-9 shrink-0 flex-col gap-1.5 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {memos.length === 0 && (
-            <p className="text-sm text-muted-foreground">이 날 메모가 없어요.</p>
+        <DrawerBody>
+          {/* 포함 메모 체크리스트. 대시보드 목록과 같은 모양(원형 체크 + 들여 쓴 구분선)이고,
+              생성 중에는 바뀌어도 반영되지 않으니 잠근다. */}
+          <div className="flex max-h-56 min-h-11 shrink-0 flex-col overflow-y-auto rounded-xl bg-card px-4 [scrollbar-width:none] dark:bg-popover [&::-webkit-scrollbar]:hidden">
+            {memos.length === 0 && (
+              <p className="py-3 text-sm text-muted-foreground">이 날 메모가 없어요.</p>
+            )}
+            {memos.map((memo) => (
+              <label key={memo.id} className="flex items-start gap-3">
+                <Checkbox
+                  checked={selectedIds.has(memo.id)}
+                  onCheckedChange={(checked) => onToggleMemo(memo.id, checked)}
+                  disabled={streaming}
+                  aria-label="요약에 포함"
+                  className="mt-2.5 flex size-5 items-center justify-center rounded-full"
+                />
+                <span className="min-w-0 flex-1 py-2.5 text-[15px] whitespace-pre-wrap [:not(:first-child)>&]:border-t">
+                  {memo.text}
+                </span>
+              </label>
+            ))}
+          </div>
+
+          <div className="flex min-h-32 flex-col rounded-xl bg-card p-4 dark:bg-popover">
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            {shown ? (
+              <SummaryMarkdown content={shown} streaming={streaming} />
+            ) : (
+              !streaming &&
+              !error && (
+                <p className="m-auto text-sm text-muted-foreground">
+                  {selectedIds.size === 0
+                    ? "요약에 담을 메모를 체크해주세요."
+                    : "요약하기를 누르면 여기에 정리돼요."}
+                </p>
+              )
+            )}
+            {streaming && !streamText && (
+              <p className="m-auto text-sm text-muted-foreground">요약을 만드는 중…</p>
+            )}
+          </div>
+
+          {/* 컨텍스트 편집은 요약 화면에 있다(#6). 주 요약 경로인 이 시트에서
+              그리로 가는 통로가 없으면 기능의 존재를 알 방법이 없어서, 아직
+              아무것도 안 적었을 때만 한 줄로 안내한다. 적고 나면 사라진다. */}
+          {!hasContext && (
+            <p className="px-1 text-xs text-muted-foreground">
+              업무 배경을 적어두면 요약이 더 정확해져요.{" "}
+              <Link
+                href={`/summary?date=${date}&category=${categoryId}`}
+                className="text-foreground underline underline-offset-4"
+              >
+                배경 적기
+              </Link>
+            </p>
           )}
-          {memos.map((memo) => (
-            <label
-              key={memo.id}
-              className="flex items-start gap-2 rounded-md border px-3 py-2"
-            >
-              <Checkbox
-                checked={selectedIds.has(memo.id)}
-                onCheckedChange={(checked) => onToggleMemo(memo.id, checked)}
-                disabled={streaming}
-                aria-label="요약에 포함"
-                className="mt-0.5"
-              />
-              <span className="flex-1 text-sm whitespace-pre-wrap">
-                {memo.text}
-              </span>
-            </label>
-          ))}
-        </div>
+        </DrawerBody>
 
-        <div className="flex min-h-24 flex-1 flex-col overflow-y-auto rounded-md border bg-muted/30 p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          {shown ? (
-            <SummaryMarkdown content={shown} streaming={streaming} />
-          ) : (
-            !streaming &&
-            !error && (
-              <p className="text-sm text-muted-foreground">
-                {selectedIds.size === 0
-                  ? "요약에 담을 메모를 선택해주세요."
-                  : "선택한 메모로 요약을 만들어드려요."}
-              </p>
-            )
-          )}
-          {streaming && !streamText && (
-            <p className="text-sm text-muted-foreground">요약을 만드는 중…</p>
-          )}
-        </div>
-
-        {/* 컨텍스트 편집은 요약 화면에 있다(#6). 주 요약 경로인 이 시트에서
-            그리로 가는 통로가 없으면 기능의 존재를 알 방법이 없어서, 아직
-            아무것도 안 적었을 때만 한 줄로 안내한다. 적고 나면 사라진다. */}
-        {!hasContext && (
-          <Link
-            href={`/summary?date=${date}&category=${categoryId}`}
-            className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-          >
-            업무 배경을 적어두면 요약이 더 정확해져요 →
-          </Link>
-        )}
-
-        <DialogFooter className="shrink-0 flex-row items-center justify-between">
+        <DrawerFooter className="justify-between">
           <div className="flex items-center gap-1">
             <Link
               href={`/summary?date=${date}&category=${categoryId}`}
@@ -126,13 +131,12 @@ export default function SummarySheet({
             >
               버전 히스토리
             </Link>
-            {/* 만든 직후가 복사하고 싶은 순간이라 시트에도 둔다. 아이콘 버튼이라
-                이미 상한까지 찬 85dvh에 부담을 주지 않는다. */}
+            {/* 만든 직후가 복사하고 싶은 순간이라 시트에도 둔다. */}
             {result && !streaming && <SummaryActions content={result} />}
           </div>
           <Button
-            size="sm"
             variant="brand"
+            className="h-10 rounded-full px-4"
             onClick={onGenerate}
             disabled={streaming || selectedIds.size === 0}
           >
@@ -143,8 +147,8 @@ export default function SummarySheet({
             )}
             {result || error ? "다시 요약" : "요약하기"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   );
 }

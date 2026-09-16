@@ -94,7 +94,7 @@ export default async function DashboardPage({
     // mx-auto가 교차축 stretch를 꺼버리기 때문이다. 그 상태에서 입력창의
     // field-sizing:content가 글자 수에 따라 max-content 폭을 키우면
     // 페이지 전체(네비·탭·카드) 폭이 같이 흔들린다.
-    <div className="mx-auto flex h-dvh w-full max-w-xl flex-col gap-4 px-6 py-6">
+    <div className="mx-auto flex h-dvh w-full max-w-xl flex-col gap-4 px-6 pt-6 pb-tab-bar sm:pb-6">
       {/* flex-1인 카드가 남는 높이를 가져가려면 위아래 고정 영역이 줄어들지 않아야 한다. */}
       <div className="flex shrink-0 flex-col gap-4">
         <InstallPrompt />
