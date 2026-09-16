@@ -168,6 +168,46 @@
   }
 }
 
+/* 로그인 워드마크(components/wordmark-intro.tsx). 막대는 --peak 높이까지 두어 번 출렁이다
+   가라앉고, 글자는 조금 아래·흐린 상태에서 제자리로 올라온다.
+   Tailwind v4의 scale 유틸리티와 맞춰 transform 대신 scale·translate 속성을 쓴다. */
+@keyframes wordmark-bar {
+  0% {
+    opacity: 0;
+    scale: 1 0.15;
+  }
+  15% {
+    opacity: 1;
+  }
+  35% {
+    scale: 1 var(--peak);
+  }
+  55% {
+    scale: 1 calc(var(--peak) * 0.45);
+  }
+  70% {
+    opacity: 1;
+    scale: 1 calc(var(--peak) * 0.8);
+  }
+  100% {
+    opacity: 0;
+    scale: 1 0.1;
+  }
+}
+
+@keyframes wordmark-letter {
+  from {
+    opacity: 0;
+    translate: 0 0.35em;
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    filter: blur(0);
+  }
+}
+
 /* 모바일 하단 탭 바(49px + 홈 인디케이터 영역)에 가려지지 않도록 페이지 아래에 두는 여백. */
 @utility pb-tab-bar {
   padding-bottom: calc(49px + env(safe-area-inset-bottom, 0px) + 1rem);
