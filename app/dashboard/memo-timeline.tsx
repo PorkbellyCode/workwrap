@@ -3,7 +3,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  CalendarDays,
   Check,
   Loader2,
   Pencil,
@@ -26,7 +25,7 @@ import { shiftDate } from "@/lib/date";
 import { useSwipeDrag } from "@/lib/use-swipe";
 import RecordButton from "./record-button";
 import NavOverlay from "@/components/nav-overlay";
-import DatePicker from "./date-picker";
+import DatePicker, { DateTitle } from "./date-picker";
 import SummarySheet from "./summary-sheet";
 import type { Memo } from "./types";
 
@@ -53,28 +52,44 @@ async function fetchMemos(date: string, categoryId: string): Promise<Memo[]> {
   return data.memos as Memo[];
 }
 
+// 목록이 비었거나 불러오는 중일 때 카드 가운데에 놓는 안내.
+function ListNotice({ title, detail }: { title: string; detail?: string }) {
+  return (
+    <div className="m-auto flex flex-col items-center gap-1 px-4 text-center">
+      <p className="text-base font-semibold">{title}</p>
+      {detail && <p className="text-sm text-muted-foreground">{detail}</p>}
+    </div>
+  );
+}
+
+const EMPTY_TITLE = "메모 없음";
+const EMPTY_DETAIL = "마이크를 누르고 말하면 받아 적어요.";
+
+// 행 사이 구분선은 본문 칸에만 긋는다. 체크박스 칸을 비워둔 iOS식 들여쓴 구분선이다.
+// 첫 행에는 긋지 않는다 — 카드 머리와 목록 사이는 여백으로 충분하다.
+const ROW_BODY =
+  "flex min-w-0 flex-1 flex-col gap-1 py-3 [:not(:first-child)>&]:border-t";
+
 // 드래그 중 옆 날짜를 미리 보여주는 읽기 전용 목록. 체크박스·수정·삭제는 없다 —
 // 아직 보고 있지 않은(확정되지 않은) 날의 메모를 건드릴 수 있게 하면 혼란스럽다.
+// 넘기는 동안 글자가 옆으로 밀려 보이지 않도록 체크박스 칸(size-5 + gap-3)만큼 비워둔다.
 function MemoPreviewList({ memos }: { memos: Memo[] | null }) {
   return (
-    <div className="flex h-full flex-col gap-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {memos === null && (
-        <p className="text-sm text-muted-foreground">불러오는 중…</p>
-      )}
+    <div className="flex h-full flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {memos === null && <ListNotice title="불러오는 중…" />}
       {memos?.length === 0 && (
-        <p className="text-sm text-muted-foreground">아직 메모가 없어요.</p>
+        <ListNotice title={EMPTY_TITLE} detail={EMPTY_DETAIL} />
       )}
       {memos?.map((memo) => (
-        <div
-          key={memo.id}
-          className="flex items-center gap-2 rounded-md border px-3 py-2"
-        >
-          <span className="flex-1 text-sm whitespace-pre-wrap">
-            {memo.text}
-          </span>
-          <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-            {timeOf(memo.createdAt)}
-          </span>
+        <div key={memo.id} className="flex pl-8">
+          <div className={ROW_BODY}>
+            <span className="text-base whitespace-pre-wrap line-clamp-4">
+              {memo.text}
+            </span>
+            <span className="text-[13px] tabular-nums text-muted-foreground">
+              {timeOf(memo.createdAt)}
+            </span>
+          </div>
         </div>
       ))}
     </div>
@@ -93,12 +108,9 @@ function DayCardPreview({
   memos: Memo[] | null;
 }) {
   return (
-    <Card className="h-full min-h-0 ring-0 border border-foreground/10">
+    <Card className="h-full min-h-0 ring-0">
       <CardHeader className="shrink-0">
-        <Button variant="secondary" size="sm" disabled className="w-fit">
-          <CalendarDays className="size-4" />
-          {date}
-        </Button>
+        <DateTitle date={date} />
         <CardAction>
           <Button variant="secondary" size="sm" disabled>
             <Sparkles className="size-4" />
@@ -324,7 +336,8 @@ export default function MemoTimeline({
             style={{ width: panelWidth || "33.3333%" }}
             className="h-full shrink-0"
           >
-            <Card className="h-full min-h-0 ring-0 border border-foreground/10">
+            {/* 테두리 없이 회색 배경 위의 흰 표면(다크는 검정 위의 #1c1c1e)으로 구분한다. */}
+            <Card className="h-full min-h-0 ring-0">
               <CardHeader className="shrink-0">
                 <DatePicker date={date} onSelect={goToDate} />
                 <CardAction>
@@ -346,33 +359,32 @@ export default function MemoTimeline({
               <CardContent className="min-h-0 flex-1 overflow-hidden">
                 {/* 메모가 쌓여도 이 영역의 크기는 그대로고 안에서만 스크롤된다.
                     스크롤바는 숨긴다 — 카드의 둥근 모서리에 걸려 잘려 보이는 게 더 거슬린다. */}
-                <div className="flex h-full flex-col gap-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex h-full flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {memos.length === 0 && (
-                    <p className="text-sm text-muted-foreground">아직 메모가 없어요.</p>
+                    <ListNotice title={EMPTY_TITLE} detail={EMPTY_DETAIL} />
                   )}
 
+                  {/* 행마다 테두리 상자를 두지 않고, 카드 하나 안에 행을 쌓고 구분선으로 나눈다. */}
                   {memos.map((memo) => (
-                    <div
-                      key={memo.id}
-                      className="flex flex-col gap-1 rounded-md border px-3 py-2"
-                    >
-                      {/* 체크박스 + 본문. 시간·수정·삭제 버튼을 옆에 두면 그만큼
-                          본문 폭이 줄어 줄바꿈이 늘어난다 — 그 줄을 아래로 뺐다. */}
-                      <div className="flex items-start gap-2">
-                        <Checkbox
-                          checked={selectedIds.has(memo.id)}
-                          onCheckedChange={(checked) => toggleMemo(memo.id, checked)}
-                          aria-label="요약에 포함"
-                          className="mt-0.5"
-                        />
+                    <div key={memo.id} className="flex items-start gap-3">
+                      {/* 본문 첫 줄(py-3 + 줄높이 24px)의 가운데에 맞춘 위치.
+                          Root가 flex가 아니라 체크 아이콘이 상자 위쪽에 붙는다 — 기본 size-4에서는
+                          차이가 1px 남짓이라 안 보였지만 size-5로 키우니 드러났다. 여기서 가운데로 모은다. */}
+                      <Checkbox
+                        checked={selectedIds.has(memo.id)}
+                        onCheckedChange={(checked) => toggleMemo(memo.id, checked)}
+                        aria-label="요약에 포함"
+                        className="mt-3.5 flex size-5 items-center justify-center rounded-full"
+                      />
+                      <div className={ROW_BODY}>
                         {editingId === memo.id ? (
                           <Textarea
                             value={editingText}
                             onChange={(e) => setEditingText(e.target.value)}
-                            className="min-h-9 flex-1 resize-none"
+                            className="min-h-9 resize-none"
                           />
                         ) : (
-                          <div className="relative min-w-0 flex-1">
+                          <div className="relative">
                             {/* 접힌 상태: 마지막 줄에 자리를 pr-10으로 미리 비워두고
                                 "더보기"를 그 자리에 겹쳐 앉힌다 — 줄바꿈해서 아래 줄에
                                 따로 두는 것보다 텍스트가 잘리는 지점 바로 옆에 있는 게
@@ -380,7 +392,7 @@ export default function MemoTimeline({
                                 버튼 뒤로 비치지 않게 한다. */}
                             <span
                               className={cn(
-                                "text-sm whitespace-pre-wrap",
+                                "text-base whitespace-pre-wrap",
                                 isLongMemo(memo.text) &&
                                   !expandedIds.has(memo.id) &&
                                   "line-clamp-4 pr-10"
@@ -393,7 +405,7 @@ export default function MemoTimeline({
                                 type="button"
                                 onClick={() => toggleExpanded(memo.id)}
                                 className={cn(
-                                  "text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground",
+                                  "text-sm text-muted-foreground hover:text-foreground",
                                   expandedIds.has(memo.id)
                                     ? "mt-1 block"
                                     : "absolute right-0 bottom-0 bg-card pl-1"
@@ -404,51 +416,56 @@ export default function MemoTimeline({
                             )}
                           </div>
                         )}
-                      </div>
-                      {/* 체크박스 폭(size-4) + gap(2)만큼 들여써 본문 시작 위치에 맞춘다. */}
-                      <div className="flex items-center justify-end gap-1 pl-6">
-                        {editingId === memo.id ? (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label="저장"
-                              onClick={() => saveEdit(memo.id)}
-                            >
-                              <Check className="size-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label="취소"
-                              onClick={() => setEditingId(null)}
-                            >
-                              <X className="size-4" />
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-xs tabular-nums text-muted-foreground">
-                              {timeOf(memo.createdAt)}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label="수정"
-                              onClick={() => startEdit(memo)}
-                            >
-                              <Pencil className="size-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label="삭제"
-                              onClick={() => deleteMemo(memo.id)}
-                            >
-                              <Trash2 className="size-4 text-destructive" />
-                            </Button>
-                          </>
-                        )}
+
+                        {/* 시각은 본문 아래 보조 텍스트, 동작은 같은 줄 오른쪽 끝.
+                            음수 마진으로 아이콘 버튼의 여백만큼 줄 높이와 오른쪽 끝을 맞춘다. */}
+                        <div className="-my-1 -mr-1.5 flex items-center gap-0.5">
+                          {editingId === memo.id ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="저장"
+                                className="ml-auto"
+                                onClick={() => saveEdit(memo.id)}
+                              >
+                                <Check className="size-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="취소"
+                                onClick={() => setEditingId(null)}
+                              >
+                                <X className="size-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <span className="mr-auto text-[13px] tabular-nums text-muted-foreground">
+                                {timeOf(memo.createdAt)}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="수정"
+                                className="text-muted-foreground"
+                                onClick={() => startEdit(memo)}
+                              >
+                                <Pencil className="size-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="삭제"
+                                className="text-muted-foreground"
+                                onClick={() => deleteMemo(memo.id)}
+                              >
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -480,7 +497,7 @@ export default function MemoTimeline({
             // 모바일이 주 사용 환경이라 Enter는 줄바꿈으로 두고 전송은 버튼으로만 한다.
             // resize 핸들은 끈다 — 우하단에서 버튼과 겹치고, 어차피 내용에 맞춰 자란다.
             // max-h를 넘어가면 이 안에서 스크롤되는데, 스크롤바는 메모 목록과 같이 숨긴다.
-            className="max-h-40 min-h-24 resize-none pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="max-h-40 min-h-24 resize-none border-transparent bg-card pb-12 [scrollbar-width:none] dark:bg-card [&::-webkit-scrollbar]:hidden"
           />
           <Button
             type="submit"

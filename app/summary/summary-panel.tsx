@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { Loader2, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,7 +16,7 @@ import { useSwipeDrag } from "@/lib/use-swipe";
 import NavOverlay from "@/components/nav-overlay";
 import SummaryActions from "@/components/summary-actions";
 import SummaryMarkdown from "@/components/summary-markdown";
-import DatePicker from "../dashboard/date-picker";
+import DatePicker, { DateTitle } from "../dashboard/date-picker";
 
 type Summary = {
   id: string;
@@ -67,10 +67,7 @@ function SummaryCardPreview({
     <Card className="h-full min-h-0 ring-0 border border-foreground/10">
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
-          <Button variant="secondary" size="sm" disabled className="w-fit">
-            <CalendarDays className="size-4" />
-            {date}
-          </Button>
+          <DateTitle date={date} />
           <Button size="sm" variant="brand" disabled>
             <Sparkles className="size-4" />
             요약하기

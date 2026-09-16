@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { ko } from "react-day-picker/locale";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { todaySeoul } from "@/lib/date";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -23,6 +24,34 @@ function formatDate(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${date.getFullYear()}-${month}-${day}`;
+}
+
+// 날짜는 카드의 큰 제목이다. "8월 30일 토요일"처럼 읽히는 형태로 쓰고, 올해가 아니면 연도를 붙인다.
+// 올해 판정은 todaySeoul()로 한다 — new Date()의 연도는 서버(UTC)와 클라이언트가
+// 연말 몇 시간 동안 달라 하이드레이션이 어긋날 수 있다.
+function dateTitle(value: string) {
+  const sameYear = value.slice(0, 4) === todaySeoul().slice(0, 4);
+  return parseDate(value).toLocaleDateString("ko-KR", {
+    ...(sameYear ? {} : { year: "numeric" }),
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+  });
+}
+
+// 트리거와 스와이프 미리보기가 같은 상자를 써야 넘길 때 제목 높이가 튀지 않는다.
+// 음수 마진은 hover 배경의 안쪽 여백만큼 글자를 카드 본문 시작선에 맞추기 위한 것이다.
+const TITLE_BOX =
+  "-ml-1.5 inline-flex w-fit items-center gap-1 rounded-lg px-1.5 py-0.5 text-xl font-semibold tracking-tight";
+
+// 스와이프 중 옆 날짜 카드에 쓰는 읽기 전용 제목.
+export function DateTitle({ date }: { date: string }) {
+  return (
+    <span className={TITLE_BOX}>
+      {dateTitle(date)}
+      <ChevronDown aria-hidden className="size-4 text-muted-foreground" />
+    </span>
+  );
 }
 
 // 월 그리드와 같은 모양(4열 × 3줄)으로 맞춘다.
@@ -125,17 +154,17 @@ export default function DatePicker({
 
   return (
     <Popover open={open} onOpenChange={toggle}>
-      {/* Base UI에는 Radix의 asChild가 없어서 트리거에 버튼 클래스를 직접 입힌다. */}
-      {/* CardHeader가 grid라 그냥 두면 트리거가 카드 폭만큼 늘어난다. */}
+      {/* 날짜 자체가 제목이자 트리거다. 버튼 모양 대신 누르면 옅어지는 반응만 준다.
+          CardHeader가 grid라 w-fit(TITLE_BOX)이 없으면 트리거가 카드 폭만큼 늘어난다. */}
       <PopoverTrigger
         className={cn(
-          buttonVariants({ variant: "secondary", size: "sm" }),
-          "w-fit"
+          TITLE_BOX,
+          "outline-none transition-opacity hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 active:opacity-60"
         )}
-        aria-label="날짜 선택"
+        aria-label={`${dateTitle(date)}, 날짜 선택`}
       >
-        <CalendarDays className="size-4" />
-        {date}
+        {dateTitle(date)}
+        <ChevronDown aria-hidden className="size-4 text-muted-foreground" />
       </PopoverTrigger>
 
       <PopoverContent align="start" className={cn(PANEL_WIDTH, "p-0")}>
