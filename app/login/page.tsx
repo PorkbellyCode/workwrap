@@ -47,7 +47,7 @@ export default function LoginPage() {
               }}
             >
               {loading && <Loader2 className="animate-spin" />}
-              Sign in with Google
+              Google로 로그인
             </Button>
           </CardContent>
         </Card>

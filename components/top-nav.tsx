@@ -58,7 +58,7 @@ export default async function TopNav({
             {/* 좁은 화면에서는 아이콘만 — 관리자에게는 "관리" 링크가 하나 더 붙어
                 헤더가 뷰포트를 넘긴다. 글자는 sr-only로 남아 낭독기에는 그대로 읽힌다. */}
             <LogOut className="sm:hidden" />
-            <span className="sr-only sm:not-sr-only">Sign out</span>
+            <span className="sr-only sm:not-sr-only">로그아웃</span>
           </Button>
         </form>
       </div>
