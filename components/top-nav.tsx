@@ -1,10 +1,10 @@
 import { auth, signOut } from "@/auth";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import NavLink from "@/components/nav-link";
 import TabBar from "@/components/tab-bar";
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { CircleHelp, LogOut } from "lucide-react";
 
 // 대시보드/관리 페이지 공통 상단 메뉴.
 // "관리" 링크는 ADMIN_EMAIL 계정에게만 노출한다(라우트 자체의 접근 제어는 /admin에서 별도로 한다).
@@ -47,6 +47,15 @@ export default async function TopNav({
       </nav>
 
       <div className="flex items-center gap-2">
+        {/* 가이드는 가끔 찾는 곳이라 하단 탭 바가 아니라 여기 둔다. 헤더는 모바일·데스크톱
+            모두에 보여서 진입점이 한 곳으로 충분하다. */}
+        <Link
+          href="/guide"
+          aria-label="사용법"
+          className={buttonVariants({ variant: "ghost", size: "icon" })}
+        >
+          <CircleHelp className="size-4" />
+        </Link>
         <ThemeToggle />
         <form
           action={async () => {

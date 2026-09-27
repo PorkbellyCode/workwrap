@@ -4,7 +4,8 @@ import { eq } from "drizzle-orm";
 import { auth, signOut } from "@/auth";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -102,6 +103,16 @@ export default async function PendingPage() {
                 이용 신청
               </Button>
             </form>
+          )}
+
+          {/* 기다리는 동안 할 수 있는 유일한 일. 중지된 사용자에게는 보여줄 이유가 없다. */}
+          {me?.status !== "suspended" && (
+            <Link
+              href="/guide"
+              className={buttonVariants({ variant: "outline", className: "w-full" })}
+            >
+              기다리는 동안 사용법 보기
+            </Link>
           )}
 
           <form
