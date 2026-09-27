@@ -122,11 +122,11 @@ export const memos = pgTable(
     // 묶고, 운영·비용 집계는 created_at을 쓴다. 이 분리로 조회 쿼리에서 타임존 변환이 사라진다.
     logDate: date("log_date", { mode: "string" }).notNull(),
     audioUrl: text("audio_url"),
-    // 하루 안에 끝나지 않은 일을 다음 날로 이어갈지. 켜 두면 끌 때까지 오늘 화면의
-    // "이어지는 일"에 따라온다. 기본값을 true로 두지 않는 이유 — 기록성 메모까지 전부
+    // 하루 안에 끝나지 않은 일을 고정해 두는 표시. 고정한 메모는 해제할 때까지 오늘 화면의
+    // "고정된 메모"에 따라온다. 기본값을 true로 두지 않는 이유 — 기록성 메모까지 전부
     // 쌓여 오늘 화면이 소음이 된다. log_date는 바꾸지 않는다. "언제 생긴 일인가"는 그대로
-    // 두고 "다음 날로 넘길 것인가"만 얹는다.
-    carryOver: boolean("carry_over").notNull().default(false),
+    // 두고 "계속 보이게 할 것인가"만 얹는다.
+    pinned: boolean("pinned").notNull().default(false),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   },
   (memo) => [index("memo_user_id_log_date_idx").on(memo.userId, memo.logDate)]

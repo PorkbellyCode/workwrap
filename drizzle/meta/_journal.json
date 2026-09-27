@@ -92,6 +92,13 @@
       "when": 1790486269772,
       "tag": "0012_drop_memo_follow_up",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790486504838,
+      "tag": "0013_rename_memo_carry_over_to_pinned",
+      "breakpoints": true
     }
   ]
 }

@@ -10,6 +10,6 @@ export type Memo = {
   logDate: string;
   text: string;
   audioUrl: string | null;
-  carryOver: boolean;
+  pinned: boolean;
   createdAt: string;
 };

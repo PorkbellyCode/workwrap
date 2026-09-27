@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Check,
-  Flag,
+  Pin,
   Loader2,
   Pencil,
   Sparkles,
@@ -37,7 +37,7 @@ function timeOf(createdAt: string) {
   });
 }
 
-// "2026-09-25" → "9월 25일". 이어지는 일이 원래 어느 날 메모였는지 표시한다.
+// "2026-09-25" → "9월 25일". 고정된 메모가 원래 어느 날 메모였는지 표시한다.
 function dayLabel(logDate: string) {
   const [, month, day] = logDate.split("-").map(Number);
   return `${month}월 ${day}일`;
@@ -136,7 +136,7 @@ export default function MemoTimeline({
   date,
   categoryId,
   initialMemos,
-  carriedMemos,
+  initialPinnedMemos,
   hasContext,
 }: {
   date: string;
@@ -144,15 +144,15 @@ export default function MemoTimeline({
   // 새 메모도 이 카테고리로 들어가므로 입력 영역에 별도 선택기가 필요 없다.
   categoryId: string;
   initialMemos: Memo[];
-  // 이전 날짜에서 이어가기를 켜 둔 메모. 오늘 화면에서만 채워진다.
-  carriedMemos: Memo[];
+  // 이전 날짜에서 고정해 둔 메모. 오늘 화면에서만 채워진다.
+  initialPinnedMemos: Memo[];
   // 사용자 전역 또는 이 카테고리에 컨텍스트가 하나라도 적혀 있는지.
   hasContext: boolean;
 }) {
   const router = useRouter();
   const [navigating, startNavigation] = useTransition();
   const [memos, setMemos] = useState<Memo[]>(initialMemos);
-  const [carried, setCarried] = useState<Memo[]>(carriedMemos);
+  const [pinnedMemos, setPinnedMemos] = useState<Memo[]>(initialPinnedMemos);
   // 요약에 포함할 메모를 고르는 상태. 새 메모는 기본으로 포함된다.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(initialMemos.map((memo) => memo.id))
@@ -277,12 +277,12 @@ export default function MemoTimeline({
     }
   }
 
-  // 이어가기 켜기/끄기. 끄는 순간 이어지는 일 목록에서 빠진다.
-  async function setCarryOver(id: string, carryOver: boolean) {
+  // 고정/해제. 해제하는 순간 고정된 메모 목록에서 빠진다.
+  async function setPinned(id: string, pinned: boolean) {
     const res = await fetch(`/api/memos/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ carryOver }),
+      body: JSON.stringify({ pinned }),
     });
     if (!res.ok) {
       setError("상태를 바꾸지 못했어요.");
@@ -290,10 +290,10 @@ export default function MemoTimeline({
     }
     setError("");
     setMemos((prev) =>
-      prev.map((memo) => (memo.id === id ? { ...memo, carryOver } : memo))
+      prev.map((memo) => (memo.id === id ? { ...memo, pinned } : memo))
     );
-    if (!carryOver) {
-      setCarried((prev) => prev.filter((memo) => memo.id !== id));
+    if (!pinned) {
+      setPinnedMemos((prev) => prev.filter((memo) => memo.id !== id));
     }
   }
 
@@ -393,12 +393,12 @@ export default function MemoTimeline({
                 <div className="flex h-full flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {/* 요약 체크박스가 없다 — 요약은 아직 그 날짜의 메모만 대상으로 한다.
                       체크 칸만큼 비워 아래 목록과 글자 시작점을 맞춘다. */}
-                  {carried.length > 0 && (
+                  {pinnedMemos.length > 0 && (
                     <div className="shrink-0 pb-2">
                       <p className="pl-8 text-[13px] font-medium text-muted-foreground">
-                        이어지는 일 {carried.length}
+                        고정된 메모 {pinnedMemos.length}
                       </p>
-                      {carried.map((memo) => (
+                      {pinnedMemos.map((memo) => (
                         <div key={memo.id} className="flex pl-8">
                           <div className={ROW_BODY}>
                             <span className="text-base whitespace-pre-wrap line-clamp-4">
@@ -411,11 +411,11 @@ export default function MemoTimeline({
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                aria-label="이어가기 끄기"
+                                aria-label="고정 해제"
                                 className="text-muted-foreground"
-                                onClick={() => setCarryOver(memo.id, false)}
+                                onClick={() => setPinned(memo.id, false)}
                               >
-                                <Flag className="size-4 fill-current" />
+                                <Pin className="size-4 fill-current" />
                               </Button>
                             </div>
                           </div>
@@ -508,17 +508,17 @@ export default function MemoTimeline({
                             <>
                               <span className="mr-auto text-[13px] tabular-nums text-muted-foreground">
                                 {timeOf(memo.createdAt)}
-                                {memo.carryOver && " · 이어가는 중"}
+                                {memo.pinned && " · 고정됨"}
                               </span>
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                aria-label={memo.carryOver ? "이어가기 끄기" : "이어가기"}
+                                aria-label={memo.pinned ? "고정 해제" : "고정"}
                                 className="text-muted-foreground"
-                                onClick={() => setCarryOver(memo.id, !memo.carryOver)}
+                                onClick={() => setPinned(memo.id, !memo.pinned)}
                               >
-                                <Flag
-                                  className={cn("size-4", memo.carryOver && "fill-current")}
+                                <Pin
+                                  className={cn("size-4", memo.pinned && "fill-current")}
                                 />
                               </Button>
                               <Button

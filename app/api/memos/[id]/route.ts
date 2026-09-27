@@ -18,9 +18,9 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json().catch(() => null);
-  // text와 carryOver는 각각 생략할 수 있다. 본문 수정과 이어가기 표시는 화면에서
+  // text와 pinned는 각각 생략할 수 있다. 본문 수정과 고정 표시는 화면에서
   // 따로 일어나는 동작이라, 한쪽만 보낼 때 다른 쪽을 건드리지 않아야 한다.
-  const changes: { text?: string; carryOver?: boolean } = {};
+  const changes: { text?: string; pinned?: boolean } = {};
 
   if (body?.text !== undefined) {
     const text = typeof body.text === "string" ? body.text.trim() : "";
@@ -30,15 +30,11 @@ export async function PATCH(
     changes.text = text;
   }
 
-  if (body?.carryOver !== undefined) {
-    if (typeof body.carryOver !== "boolean") {
-      return errorResponse(
-        "INVALID_CARRY_OVER",
-        "carryOver는 boolean이어야 합니다.",
-        400
-      );
+  if (body?.pinned !== undefined) {
+    if (typeof body.pinned !== "boolean") {
+      return errorResponse("INVALID_PINNED", "pinned는 boolean이어야 합니다.", 400);
     }
-    changes.carryOver = body.carryOver;
+    changes.pinned = body.pinned;
   }
 
   if (Object.keys(changes).length === 0) {
@@ -60,7 +56,7 @@ export async function PATCH(
     id: memo.id,
     text: memo.text,
     audioUrl: memo.audioUrl,
-    carryOver: memo.carryOver,
+    pinned: memo.pinned,
     createdAt: memo.createdAt,
   });
 }
