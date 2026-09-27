@@ -4,7 +4,6 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Check,
-  CircleCheck,
   Flag,
   Loader2,
   Pencil,
@@ -145,7 +144,7 @@ export default function MemoTimeline({
   // 새 메모도 이 카테고리로 들어가므로 입력 영역에 별도 선택기가 필요 없다.
   categoryId: string;
   initialMemos: Memo[];
-  // 이전 날짜에서 이어진 미해결 메모. 오늘 화면에서만 채워진다.
+  // 이전 날짜에서 이어가기를 켜 둔 메모. 오늘 화면에서만 채워진다.
   carriedMemos: Memo[];
   // 사용자 전역 또는 이 카테고리에 컨텍스트가 하나라도 적혀 있는지.
   hasContext: boolean;
@@ -278,13 +277,12 @@ export default function MemoTimeline({
     }
   }
 
-  // 이어가기 표시(open) / 해제(null) / 해결(resolved). 이어지는 일 목록에서는
-  // open이 아닌 상태가 되는 순간 빠진다.
-  async function setFollowUp(id: string, followUp: Memo["followUp"]) {
+  // 이어가기 켜기/끄기. 끄는 순간 이어지는 일 목록에서 빠진다.
+  async function setCarryOver(id: string, carryOver: boolean) {
     const res = await fetch(`/api/memos/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ followUp }),
+      body: JSON.stringify({ carryOver }),
     });
     if (!res.ok) {
       setError("상태를 바꾸지 못했어요.");
@@ -292,9 +290,9 @@ export default function MemoTimeline({
     }
     setError("");
     setMemos((prev) =>
-      prev.map((memo) => (memo.id === id ? { ...memo, followUp } : memo))
+      prev.map((memo) => (memo.id === id ? { ...memo, carryOver } : memo))
     );
-    if (followUp !== "open") {
+    if (!carryOver) {
       setCarried((prev) => prev.filter((memo) => memo.id !== id));
     }
   }
@@ -413,20 +411,11 @@ export default function MemoTimeline({
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                aria-label="이어가기 취소"
+                                aria-label="이어가기 끄기"
                                 className="text-muted-foreground"
-                                onClick={() => setFollowUp(memo.id, null)}
+                                onClick={() => setCarryOver(memo.id, false)}
                               >
                                 <Flag className="size-4 fill-current" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label="해결"
-                                className="text-muted-foreground"
-                                onClick={() => setFollowUp(memo.id, "resolved")}
-                              >
-                                <CircleCheck className="size-4" />
                               </Button>
                             </div>
                           </div>
@@ -519,40 +508,17 @@ export default function MemoTimeline({
                             <>
                               <span className="mr-auto text-[13px] tabular-nums text-muted-foreground">
                                 {timeOf(memo.createdAt)}
-                                {memo.followUp === "open" && " · 이어가는 중"}
-                                {memo.followUp === "resolved" && " · 해결됨"}
+                                {memo.carryOver && " · 이어가는 중"}
                               </span>
-                              {memo.followUp === "open" && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  aria-label="해결"
-                                  className="text-muted-foreground"
-                                  onClick={() => setFollowUp(memo.id, "resolved")}
-                                >
-                                  <CircleCheck className="size-4" />
-                                </Button>
-                              )}
-                              {/* 해결된 메모를 다시 누르면 이어가기로 되돌린다. */}
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                aria-label={
-                                  memo.followUp === "open" ? "이어가기 취소" : "이어가기"
-                                }
+                                aria-label={memo.carryOver ? "이어가기 끄기" : "이어가기"}
                                 className="text-muted-foreground"
-                                onClick={() =>
-                                  setFollowUp(
-                                    memo.id,
-                                    memo.followUp === "open" ? null : "open"
-                                  )
-                                }
+                                onClick={() => setCarryOver(memo.id, !memo.carryOver)}
                               >
                                 <Flag
-                                  className={cn(
-                                    "size-4",
-                                    memo.followUp === "open" && "fill-current"
-                                  )}
+                                  className={cn("size-4", memo.carryOver && "fill-current")}
                                 />
                               </Button>
                               <Button

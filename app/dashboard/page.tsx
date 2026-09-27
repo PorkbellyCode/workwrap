@@ -70,7 +70,7 @@ export default async function DashboardPage({
       logDate: memos.logDate,
       text: memos.text,
       audioUrl: memos.audioUrl,
-      followUp: memos.followUp,
+      carryOver: memos.carryOver,
       createdAt: memos.createdAt,
     })
     .from(memos)
@@ -88,8 +88,8 @@ export default async function DashboardPage({
     createdAt: memo.createdAt.toISOString(),
   }));
 
-  // 이전 날짜에 '이어가기'로 표시해 두고 아직 해결하지 않은 메모. 오늘 화면에서만 보여준다 —
-  // 과거 날짜를 볼 때 "그 시점에 미해결이던 것"까지 재구성하려면 해결 이력이 필요한데,
+  // 이전 날짜에 '이어가기'를 켜 두고 아직 끄지 않은 메모. 오늘 화면에서만 보여준다 —
+  // 과거 날짜를 볼 때 "그 시점에 이어지던 것"까지 재구성하려면 켜고 끈 이력이 필요한데,
   // 그 화면에서 이어지는 일을 찾을 이유가 아직 없다.
   const carriedRows =
     date === todaySeoul()
@@ -100,7 +100,7 @@ export default async function DashboardPage({
             logDate: memos.logDate,
             text: memos.text,
             audioUrl: memos.audioUrl,
-            followUp: memos.followUp,
+            carryOver: memos.carryOver,
             createdAt: memos.createdAt,
           })
           .from(memos)
@@ -108,7 +108,7 @@ export default async function DashboardPage({
             and(
               eq(memos.userId, userId),
               eq(memos.categoryId, selectedCategoryId),
-              eq(memos.followUp, "open"),
+              eq(memos.carryOver, true),
               lt(memos.logDate, date)
             )
           )

@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { memoFollowUpValues, memos, type MemoFollowUp } from "@/lib/db/schema";
+import { memos } from "@/lib/db/schema";
 
 function errorResponse(code: string, message: string, status: number) {
   return Response.json({ error: { code, message } }, { status });
@@ -18,13 +18,9 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json().catch(() => null);
-  // text와 followUp은 각각 생략할 수 있다. 본문 수정과 이어가기 표시는 화면에서
+  // text와 carryOver는 각각 생략할 수 있다. 본문 수정과 이어가기 표시는 화면에서
   // 따로 일어나는 동작이라, 한쪽만 보낼 때 다른 쪽을 건드리지 않아야 한다.
-  const changes: {
-    text?: string;
-    followUp?: MemoFollowUp | null;
-    resolvedAt?: Date | null;
-  } = {};
+  const changes: { text?: string; carryOver?: boolean } = {};
 
   if (body?.text !== undefined) {
     const text = typeof body.text === "string" ? body.text.trim() : "";
@@ -34,18 +30,15 @@ export async function PATCH(
     changes.text = text;
   }
 
-  if (body?.followUp !== undefined) {
-    const followUp = body.followUp;
-    if (followUp !== null && !memoFollowUpValues.includes(followUp)) {
+  if (body?.carryOver !== undefined) {
+    if (typeof body.carryOver !== "boolean") {
       return errorResponse(
-        "INVALID_FOLLOW_UP",
-        "followUp은 null, 'open', 'resolved' 중 하나여야 합니다.",
+        "INVALID_CARRY_OVER",
+        "carryOver는 boolean이어야 합니다.",
         400
       );
     }
-    changes.followUp = followUp;
-    // 해결 시각은 서버가 찍는다. 해결을 되돌리면 함께 지운다.
-    changes.resolvedAt = followUp === "resolved" ? new Date() : null;
+    changes.carryOver = body.carryOver;
   }
 
   if (Object.keys(changes).length === 0) {
@@ -67,7 +60,7 @@ export async function PATCH(
     id: memo.id,
     text: memo.text,
     audioUrl: memo.audioUrl,
-    followUp: memo.followUp,
+    carryOver: memo.carryOver,
     createdAt: memo.createdAt,
   });
 }

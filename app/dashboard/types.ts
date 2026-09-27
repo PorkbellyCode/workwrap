@@ -10,6 +10,6 @@ export type Memo = {
   logDate: string;
   text: string;
   audioUrl: string | null;
-  followUp: "open" | "resolved" | null;
+  carryOver: boolean;
   createdAt: string;
 };

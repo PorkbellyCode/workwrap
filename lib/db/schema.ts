@@ -1,4 +1,5 @@
 import {
+  boolean,
   date,
   index,
   integer,
@@ -103,14 +104,6 @@ export const categories = pgTable("category", {
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
-// 하루 안에 끝나지 않은 일을 다음 날로 이어가기 위한 상태. null은 일반 기록이다.
-// 기본값을 'open'으로 두지 않는 이유 — 기록성 메모까지 전부 쌓여 오늘 화면이 소음이 된다.
-// 사용자가 명시적으로 표시한 메모만 해결될 때까지 오늘 화면에 따라온다.
-// log_date는 바꾸지 않는다. "언제 생긴 일인가"는 그대로 두고 "아직 안 끝났는가"만 얹는다.
-export const memoFollowUpValues = ["open", "resolved"] as const;
-export type MemoFollowUp = (typeof memoFollowUpValues)[number];
-export const memoFollowUpEnum = pgEnum("memo_follow_up", memoFollowUpValues);
-
 export const memos = pgTable(
   "memo",
   {
@@ -129,9 +122,11 @@ export const memos = pgTable(
     // 묶고, 운영·비용 집계는 created_at을 쓴다. 이 분리로 조회 쿼리에서 타임존 변환이 사라진다.
     logDate: date("log_date", { mode: "string" }).notNull(),
     audioUrl: text("audio_url"),
-    followUp: memoFollowUpEnum("follow_up"),
-    // 'resolved'로 바뀐 시각. 해결한 날의 요약에 반영하려면 해결 시점이 필요하다.
-    resolvedAt: timestamp("resolved_at", { mode: "date" }),
+    // 하루 안에 끝나지 않은 일을 다음 날로 이어갈지. 켜 두면 끌 때까지 오늘 화면의
+    // "이어지는 일"에 따라온다. 기본값을 true로 두지 않는 이유 — 기록성 메모까지 전부
+    // 쌓여 오늘 화면이 소음이 된다. log_date는 바꾸지 않는다. "언제 생긴 일인가"는 그대로
+    // 두고 "다음 날로 넘길 것인가"만 얹는다.
+    carryOver: boolean("carry_over").notNull().default(false),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   },
   (memo) => [index("memo_user_id_log_date_idx").on(memo.userId, memo.logDate)]

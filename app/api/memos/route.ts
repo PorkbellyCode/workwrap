@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       logDate: memo.logDate,
       text: memo.text,
       audioUrl: memo.audioUrl,
-      followUp: memo.followUp,
+      carryOver: memo.carryOver,
       createdAt: memo.createdAt,
     },
     { status: 201 }
@@ -93,7 +93,7 @@ export async function GET(request: Request) {
       logDate: memos.logDate,
       text: memos.text,
       audioUrl: memos.audioUrl,
-      followUp: memos.followUp,
+      carryOver: memos.carryOver,
       createdAt: memos.createdAt,
     })
     .from(memos)
