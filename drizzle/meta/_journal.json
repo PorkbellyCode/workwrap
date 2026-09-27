@@ -71,6 +71,13 @@
       "when": 1788228987480,
       "tag": "0009_drop_user_approved_column",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790485787531,
+      "tag": "0010_add_memo_follow_up",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Check,
+  CircleCheck,
+  Flag,
   Loader2,
   Pencil,
   Sparkles,
@@ -34,6 +36,12 @@ function timeOf(createdAt: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+// "2026-09-25" → "9월 25일". 이어지는 일이 원래 어느 날 메모였는지 표시한다.
+function dayLabel(logDate: string) {
+  const [, month, day] = logDate.split("-").map(Number);
+  return `${month}월 ${day}일`;
 }
 
 // 이 길이를 넘거나 줄바꿈이 잦으면 4줄로 접어두고 "더보기"를 띄운다. DOM을 재서
@@ -129,6 +137,7 @@ export default function MemoTimeline({
   date,
   categoryId,
   initialMemos,
+  carriedMemos,
   hasContext,
 }: {
   date: string;
@@ -136,12 +145,15 @@ export default function MemoTimeline({
   // 새 메모도 이 카테고리로 들어가므로 입력 영역에 별도 선택기가 필요 없다.
   categoryId: string;
   initialMemos: Memo[];
+  // 이전 날짜에서 이어진 미해결 메모. 오늘 화면에서만 채워진다.
+  carriedMemos: Memo[];
   // 사용자 전역 또는 이 카테고리에 컨텍스트가 하나라도 적혀 있는지.
   hasContext: boolean;
 }) {
   const router = useRouter();
   const [navigating, startNavigation] = useTransition();
   const [memos, setMemos] = useState<Memo[]>(initialMemos);
+  const [carried, setCarried] = useState<Memo[]>(carriedMemos);
   // 요약에 포함할 메모를 고르는 상태. 새 메모는 기본으로 포함된다.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(initialMemos.map((memo) => memo.id))
@@ -266,6 +278,27 @@ export default function MemoTimeline({
     }
   }
 
+  // 이어가기 표시(open) / 해제(null) / 해결(resolved). 이어지는 일 목록에서는
+  // open이 아닌 상태가 되는 순간 빠진다.
+  async function setFollowUp(id: string, followUp: Memo["followUp"]) {
+    const res = await fetch(`/api/memos/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ followUp }),
+    });
+    if (!res.ok) {
+      setError("상태를 바꾸지 못했어요.");
+      return;
+    }
+    setError("");
+    setMemos((prev) =>
+      prev.map((memo) => (memo.id === id ? { ...memo, followUp } : memo))
+    );
+    if (followUp !== "open") {
+      setCarried((prev) => prev.filter((memo) => memo.id !== id));
+    }
+  }
+
   // router.push는 프로미스를 돌려주지 않아서, 전환이 끝나는 시점을 알려면
   // useTransition으로 감싸는 수밖에 없다.
   function goToDate(next: string) {
@@ -360,6 +393,48 @@ export default function MemoTimeline({
                 {/* 메모가 쌓여도 이 영역의 크기는 그대로고 안에서만 스크롤된다.
                     스크롤바는 숨긴다 — 카드의 둥근 모서리에 걸려 잘려 보이는 게 더 거슬린다. */}
                 <div className="flex h-full flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {/* 요약 체크박스가 없다 — 요약은 아직 그 날짜의 메모만 대상으로 한다.
+                      체크 칸만큼 비워 아래 목록과 글자 시작점을 맞춘다. */}
+                  {carried.length > 0 && (
+                    <div className="shrink-0 pb-2">
+                      <p className="pl-8 text-[13px] font-medium text-muted-foreground">
+                        이어지는 일 {carried.length}
+                      </p>
+                      {carried.map((memo) => (
+                        <div key={memo.id} className="flex pl-8">
+                          <div className={ROW_BODY}>
+                            <span className="text-base whitespace-pre-wrap line-clamp-4">
+                              {memo.text}
+                            </span>
+                            <div className="-my-1 -mr-1.5 flex items-center gap-0.5">
+                              <span className="mr-auto text-[13px] tabular-nums text-muted-foreground">
+                                {dayLabel(memo.logDate)}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="이어가기 취소"
+                                className="text-muted-foreground"
+                                onClick={() => setFollowUp(memo.id, null)}
+                              >
+                                <Flag className="size-4 fill-current" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="해결"
+                                className="text-muted-foreground"
+                                onClick={() => setFollowUp(memo.id, "resolved")}
+                              >
+                                <CircleCheck className="size-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {memos.length === 0 && (
                     <ListNotice title={EMPTY_TITLE} detail={EMPTY_DETAIL} />
                   )}
@@ -444,7 +519,42 @@ export default function MemoTimeline({
                             <>
                               <span className="mr-auto text-[13px] tabular-nums text-muted-foreground">
                                 {timeOf(memo.createdAt)}
+                                {memo.followUp === "open" && " · 이어가는 중"}
+                                {memo.followUp === "resolved" && " · 해결됨"}
                               </span>
+                              {memo.followUp === "open" && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="해결"
+                                  className="text-muted-foreground"
+                                  onClick={() => setFollowUp(memo.id, "resolved")}
+                                >
+                                  <CircleCheck className="size-4" />
+                                </Button>
+                              )}
+                              {/* 해결된 메모를 다시 누르면 이어가기로 되돌린다. */}
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={
+                                  memo.followUp === "open" ? "이어가기 취소" : "이어가기"
+                                }
+                                className="text-muted-foreground"
+                                onClick={() =>
+                                  setFollowUp(
+                                    memo.id,
+                                    memo.followUp === "open" ? null : "open"
+                                  )
+                                }
+                              >
+                                <Flag
+                                  className={cn(
+                                    "size-4",
+                                    memo.followUp === "open" && "fill-current"
+                                  )}
+                                />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon-sm"

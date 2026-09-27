@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, lt } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 // 지역 변수 categories(탭 목록)와 이름이 겹쳐 테이블은 별칭으로 가져온다.
@@ -70,6 +70,7 @@ export default async function DashboardPage({
       logDate: memos.logDate,
       text: memos.text,
       audioUrl: memos.audioUrl,
+      followUp: memos.followUp,
       createdAt: memos.createdAt,
     })
     .from(memos)
@@ -83,6 +84,38 @@ export default async function DashboardPage({
     .orderBy(asc(memos.createdAt));
 
   const initialMemos = rows.map((memo) => ({
+    ...memo,
+    createdAt: memo.createdAt.toISOString(),
+  }));
+
+  // 이전 날짜에 '이어가기'로 표시해 두고 아직 해결하지 않은 메모. 오늘 화면에서만 보여준다 —
+  // 과거 날짜를 볼 때 "그 시점에 미해결이던 것"까지 재구성하려면 해결 이력이 필요한데,
+  // 그 화면에서 이어지는 일을 찾을 이유가 아직 없다.
+  const carriedRows =
+    date === todaySeoul()
+      ? await db
+          .select({
+            id: memos.id,
+            categoryId: memos.categoryId,
+            logDate: memos.logDate,
+            text: memos.text,
+            audioUrl: memos.audioUrl,
+            followUp: memos.followUp,
+            createdAt: memos.createdAt,
+          })
+          .from(memos)
+          .where(
+            and(
+              eq(memos.userId, userId),
+              eq(memos.categoryId, selectedCategoryId),
+              eq(memos.followUp, "open"),
+              lt(memos.logDate, date)
+            )
+          )
+          .orderBy(asc(memos.logDate), asc(memos.createdAt))
+      : [];
+
+  const carriedMemos = carriedRows.map((memo) => ({
     ...memo,
     createdAt: memo.createdAt.toISOString(),
   }));
@@ -115,6 +148,7 @@ export default async function DashboardPage({
         date={date}
         categoryId={selectedCategoryId}
         initialMemos={initialMemos}
+        carriedMemos={carriedMemos}
         // 컨텍스트 편집은 요약 화면에 있다. 여기서 요약을 만드는 사람이 그 존재를
         // 영영 모르지 않도록, 비어 있을 때만 시트에서 안내한다.
         hasContext={Boolean(me.context || selectedCategory.context)}

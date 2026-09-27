@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { memos } from "@/lib/db/schema";
+import { memoFollowUpValues, memos, type MemoFollowUp } from "@/lib/db/schema";
 
 function errorResponse(code: string, message: string, status: number) {
   return Response.json({ error: { code, message } }, { status });
@@ -18,15 +18,43 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json().catch(() => null);
-  const text = typeof body?.text === "string" ? body.text.trim() : "";
+  // text와 followUp은 각각 생략할 수 있다. 본문 수정과 이어가기 표시는 화면에서
+  // 따로 일어나는 동작이라, 한쪽만 보낼 때 다른 쪽을 건드리지 않아야 한다.
+  const changes: {
+    text?: string;
+    followUp?: MemoFollowUp | null;
+    resolvedAt?: Date | null;
+  } = {};
 
-  if (!text) {
+  if (body?.text !== undefined) {
+    const text = typeof body.text === "string" ? body.text.trim() : "";
+    if (!text) {
+      return errorResponse("INVALID_TEXT", "메모 텍스트가 비어있습니다.", 400);
+    }
+    changes.text = text;
+  }
+
+  if (body?.followUp !== undefined) {
+    const followUp = body.followUp;
+    if (followUp !== null && !memoFollowUpValues.includes(followUp)) {
+      return errorResponse(
+        "INVALID_FOLLOW_UP",
+        "followUp은 null, 'open', 'resolved' 중 하나여야 합니다.",
+        400
+      );
+    }
+    changes.followUp = followUp;
+    // 해결 시각은 서버가 찍는다. 해결을 되돌리면 함께 지운다.
+    changes.resolvedAt = followUp === "resolved" ? new Date() : null;
+  }
+
+  if (Object.keys(changes).length === 0) {
     return errorResponse("INVALID_TEXT", "메모 텍스트가 비어있습니다.", 400);
   }
 
   const [memo] = await db
     .update(memos)
-    .set({ text })
+    .set(changes)
     .where(and(eq(memos.id, id), eq(memos.userId, session.user.id)))
     .returning();
 
@@ -39,6 +67,7 @@ export async function PATCH(
     id: memo.id,
     text: memo.text,
     audioUrl: memo.audioUrl,
+    followUp: memo.followUp,
     createdAt: memo.createdAt,
   });
 }
